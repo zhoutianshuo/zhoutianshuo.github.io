@@ -2,33 +2,56 @@
 layout: about
 title: about
 permalink: /
-subtitle: <a href='#'>Affiliations</a>. Address. Contacts. Motto. Etc.
+subtitle: Machine Learning at Uber · Ph.D. in Computer Science, Oregon State University
 
 profile:
   align: right
   image: prof_pic.jpg
-  image_circular: false # crops the image to make it circular
-  more_info: >
-    <p>555 your office number</p>
-    <p>123 your address street</p>
-    <p>Your City, State 12345</p>
+  image_circular: true # crops the image to make it circular
 
-selected_papers: true # includes a list of papers marked as "selected={true}"
+selected_papers: false # selected papers are rendered inline below, to keep them above talks and service
 social: true # includes social icons at the bottom of the page
 
 announcements:
-  enabled: true # includes a list of news items
-  scrollable: true # adds a vertical scroll bar if there are more than 3 news items
-  limit: 5 # leave blank to include all the news in the `_news` folder
+  enabled: false # includes a list of news items
 
 latest_posts:
-  enabled: true
-  scrollable: true # adds a vertical scroll bar if there are more than 3 new posts items
-  limit: 3 # leave blank to include all the blog posts
+  enabled: false
 ---
 
-Write your biography here. Tell the world about yourself. Link to your favorite [subreddit](https://www.reddit.com). You can put a picture in, too. The code is already in, just name your picture `prof_pic.jpg` and put it in the `img/` folder.
+I completed my Ph.D. in Computer Science at Oregon State University in January 2026, advised by [Prof. Liang Huang](https://web.engr.oregonstate.edu/~huanlian/).
+My research focused on AI for science: I developed efficient algorithms and generative models for biological sequence generation, drawing on methods from natural language processing.
+Currently, I work on machine learning for marketplace forecasting at Uber.
 
-Put your address / P.O. box / other info right below your picture. You can also disable any of these elements by editing `profile` property of the YAML header of your `_pages/about.md`. Edit `_bibliography/papers.bib` and Jekyll will render your [publications page](/al-folio/publications/) automatically.
+## research interests
 
-Link to your social media connections, too. This theme is set up to use [Font Awesome icons](https://fontawesome.com/) and [Academicons](https://jpswalsh.github.io/academicons/), like the ones below. Add your Facebook, Twitter, LinkedIn, Google Scholar, or just disable all of them.
+- AI for Science (Computational Biology)
+- Natural Language Processing
+- Web Search
+
+## [selected publications]({{ '/publications/' | relative_url }})
+
+See [Google Scholar](https://scholar.google.com/citations?user=RF1_oQoAAAAJ&hl=en) for the full publication list.
+
+<div class="publications">
+  {% bibliography --group_by none --query @*[selected=true]* %}
+</div>
+
+## recent talks
+
+- _ISMB 2026_ (Proceedings Talk), July 2026
+- _Eternacon 2025_ (Invited Talk), July 2025
+- _RECOMB 2025_ (Proceedings Talk), April 2025
+- _Eternacon 2024_ (Invited Talk), July 2024
+- _RECOMB 2024_ (Proceedings Talk), May 2024
+- _ISMB 2023_ (Proceedings Talk), July 2023
+
+## academic service
+
+- **Reviewer**: ACL 2026, _Nature Communications_ (2024), _Bioinformatics_ (2025), ACM BCB (2025, 2026), _Computational and Structural Biotechnology Journal_ (2026)
+- **Co-Reviewer**: ISMB (2023, 2024, 2025), RECOMB (2026)
+
+## tools
+
+- [Lunar Calendar](https://web.engr.oregonstate.edu/~zhoutian/lunar-calendar/index.html) — Chinese lunar / Gregorian calendar converter
+- [The Shannon Game](https://web.engr.oregonstate.edu/~zhoutian/shannon-game/index.html) — an interactive recreation of Shannon's 1951 letter-guessing experiment estimating the entropy of English

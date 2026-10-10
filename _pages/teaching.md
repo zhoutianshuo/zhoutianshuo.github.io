@@ -2,14 +2,14 @@
 layout: page
 permalink: /teaching/
 title: teaching
-description: Course materials, schedules, and resources for classes taught.
+description:
 nav: true
-nav_order: 6
-calendar: true
+nav_order: 2
 ---
 
-This page displays a collection of courses with detailed schedules, materials, and resources. You can organize your courses by years, terms, or topics.
-
-{% include calendar.liquid calendar_id='test@gmail.com' timezone='Asia/Shanghai' %}
-
-{% include courses.liquid %}
+- Guest Lecturer ([slides](https://web.engr.oregonstate.edu/~zhoutian/teaching/20250529-CS261-Guest-Lecture.pdf)), CS261 Data Structures, Oregon State University, Spring 2025
+- Teaching Assistant and Guest Lecturer ([slides](https://web.engr.oregonstate.edu/~zhoutian/teaching/dp101_TSedits.pdf)), [CS514 Algorithms](https://web.engr.oregonstate.edu/~huanlian/teaching/alg/2025spring/) (graduate course), Oregon State University, Spring 2025
+- Teaching Assistant, CS325 Analysis of Algorithms, Oregon State University, [Spring 2023](https://web.engr.oregonstate.edu/~huanlian/teaching/advprg/2023spring/) & [Spring 2024](https://web.engr.oregonstate.edu/~huanlian/teaching/advprg/2024spring-325/)
+- Teaching Assistant, [CS514 Algorithms: Design, Analysis, and Implementation](https://ecampus.oregonstate.edu/soc/ecatalog/ecoursedetail.htm?subject=CS&coursenumber=514&termcode=ALL) (graduate course), Oregon State University, Fall 2023
+- Teaching Assistant, Graph Theory, Nanjing University, Spring 2020
+- Teaching Assistant, Mathematical Analysis, Nanjing University, Spring 2019
