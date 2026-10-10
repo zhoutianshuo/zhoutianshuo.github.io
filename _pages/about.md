@@ -66,8 +66,3 @@ See the [publications page]({{ '/publications/' | relative_url }}) or [Google Sc
 
 - **Reviewer**: ACL 2026, _Nature Communications_ (2024), _Bioinformatics_ (2025), ACM BCB (2025, 2026), _Computational and Structural Biotechnology Journal_ (2026)
 - **Co-Reviewer**: ISMB (2023, 2024, 2025), RECOMB (2026)
-
-## tools
-
-- [Lunar Calendar](https://web.engr.oregonstate.edu/~zhoutian/lunar-calendar/index.html) — Chinese lunar / Gregorian calendar converter
-- [The Shannon Game](https://web.engr.oregonstate.edu/~zhoutian/shannon-game/index.html) — an interactive recreation of Shannon's 1951 letter-guessing experiment estimating the entropy of English
