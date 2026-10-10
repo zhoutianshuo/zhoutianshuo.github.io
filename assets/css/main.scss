@@ -1,0 +1,54 @@
+---
+# Only the main Sass file needs front matter (the dashes are enough)
+---
+
+@charset "utf-8";
+
+/* Built-in Sass modules you’ll likely use across partials */
+@use "sass:math";
+@use "sass:string";
+
+/* Configure your design tokens BEFORE loading any of your partials.
+   Make sure `_sass/_variables.scss` declares `$max-content-width: 72rem !default;` */
+@use "variables" with (
+  $max-content-width: {{site.max_width | default: "930px"}}
+);
+
+/* Your project partials — convert these files to `@use "variables";`
+   (or `@use "variables" as *;`) inside each file and qualify variables if needed. */
+@use "themes";
+@use "layout";
+
+// Core styles organized by usage
+@use "typography";
+@use "navbar";
+@use "footer";
+@use "blog";
+@use "publications";
+@use "components";
+@use "utilities";
+
+// Other specialized styles
+@use "tabs";
+@use "teachings";
+@use "typograms";
+
+// -----------------------------------------------------------------------------
+// Site-local overrides (everything above is a verbatim copy of al_folio_core
+// 1.0.15's assets/css/main.scss; re-sync it when bumping the gem).
+// -----------------------------------------------------------------------------
+
+// Always reserve room for the vertical scrollbar so the centered layout (and
+// the navbar tabs) don't shift sideways between short and long pages.
+html {
+  scrollbar-gutter: stable;
+}
+
+// The theme bolds the active tab, which widens it and nudges every tab after
+// it. Fake the bold with a text-shadow instead so tab widths never change.
+.navbar.navbar-light .navbar-nav .nav-item.active > .nav-link {
+  font-weight: inherit;
+  text-shadow:
+    0.35px 0 0 currentColor,
+    -0.35px 0 0 currentColor;
+}
