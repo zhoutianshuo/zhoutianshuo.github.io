@@ -28,6 +28,31 @@ _In `v1.x`, al-folio is a **thin starter, not a theme**: the runtime ships as in
 
 </div>
 
+## Previewing this site locally
+
+The easiest way to preview [zhoutianshuo.github.io](https://zhoutianshuo.github.io) before pushing is Docker, which needs no local Ruby setup.
+
+1. Start **Docker Desktop**.
+2. From the repo root, start the dev server in the background:
+
+   ```bash
+   docker compose up -d
+   ```
+
+3. Open **<http://localhost:8080/>**. The first run downloads the `amirpourmand/al-folio` image and installs any missing gems, so give it a minute; follow along with `docker compose logs -f` until you see `Server running...`.
+
+While it runs, saving a file rebuilds the site in a few seconds and an open browser tab reloads itself. Edits to `_config.yml` restart the server automatically. The site is served at the root (`baseurl` is empty), so the URLs match the live site.
+
+Stop the server when you are done:
+
+```bash
+docker compose down
+```
+
+If you have Ruby 3.x and Bundler 4.0.6 installed natively, the equivalent is `bundle install` once, then `bundle exec jekyll serve --livereload` and <http://localhost:4000/>.
+
+The two tools under `tools/` (Lunar Calendar, Shannon Game) are plain static pages, so you can also open them directly without a server, e.g. `open tools/shannon-game/index.html`.
+
 ## Getting started
 
 **⚠️ Important: Use "Use this template" (not fork)**
@@ -52,6 +77,7 @@ Want to learn more about Jekyll? Check out [this tutorial](https://www.taniarasc
 <!--ts-->
 
 - [al-folio](#al-folio)
+  - [Previewing this site locally](#previewing-this-site-locally)
   - [Getting started](#getting-started)
   - [Table Of Contents](#table-of-contents)
   - [Installing and Deploying](#installing-and-deploying)
