@@ -53,15 +53,6 @@ See the [publications page]({{ '/publications/' | relative_url }}) or [Google Sc
   {% bibliography --group_by none --query @*[selected=true]* %}
 </div>
 
-## recent talks
-
-- _ISMB 2026_ (Proceedings Talk), July 2026
-- _Eternacon 2025_ (Invited Talk), July 2025
-- _RECOMB 2025_ (Proceedings Talk), April 2025
-- _Eternacon 2024_ (Invited Talk), July 2024
-- _RECOMB 2024_ (Proceedings Talk), May 2024
-- _ISMB 2023_ (Proceedings Talk), July 2023
-
 ## academic service
 
 - **Reviewer**: ACL 2026, _Nature Communications_ (2024), _Bioinformatics_ (2025), ACM BCB (2025, 2026), _Computational and Structural Biotechnology Journal_ (2026)
