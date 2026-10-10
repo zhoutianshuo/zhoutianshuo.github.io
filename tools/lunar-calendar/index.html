@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>农历与公历查询</title>
+<script>
+  // follow the light/dark choice made on zhoutianshuo.github.io (al-folio stores it as "theme")
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" id="favicon" type="image/png" href="assets/zodiac/horse.png">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <h1 id="siteTitle">农历与公历查询</h1>
+    <div class="lang-toggle">
+      <button id="btnEn" class="lang-btn" data-lang="en">EN</button>
+      <button id="btnZh" class="lang-btn active" data-lang="zh">中文</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- TODAY CARD -->
+    <section class="card today-card" id="todayCard">
+      <h2 data-i18n="todayTitle">Today</h2>
+      <div class="today-grid">
+        <div class="today-block">
+          <div class="today-label" data-i18n="gregorian">Gregorian</div>
+          <div class="today-main" id="todaySolar">--</div>
+          <div class="today-sub" id="todayWeekday">--</div>
+        </div>
+        <div class="today-block today-block-lunar">
+          <img class="zodiac-icon" id="todayZodiacIcon" alt="">
+          <div class="today-block-text">
+            <div class="today-label" data-i18n="lunar">Lunar</div>
+            <div class="today-main" id="todayLunar">--</div>
+            <div class="today-sub" id="todayGanZhi">--</div>
+          </div>
+        </div>
+      </div>
+      <div class="today-extra" id="todayExtra"></div>
+    </section>
+
+    <!-- MONTH CALENDAR -->
+    <section class="card">
+      <div class="cal-header">
+        <div class="cal-nav-group">
+          <button id="prevYear" class="nav-btn" data-i18n-title="prevYear">&laquo;</button>
+          <button id="prevMonth" class="nav-btn" data-i18n-title="prevMonth">&lsaquo;</button>
+        </div>
+        <div class="cal-picker">
+          <select id="monthSelect" class="cal-select"></select>
+          <select id="yearSelect" class="cal-select"></select>
+        </div>
+        <div class="cal-nav-group">
+          <button id="nextMonth" class="nav-btn" data-i18n-title="nextMonth">&rsaquo;</button>
+          <button id="nextYear" class="nav-btn" data-i18n-title="nextYear">&raquo;</button>
+        </div>
+        <button id="gotoToday" class="today-btn" data-i18n="goToday">Today</button>
+      </div>
+      <div class="cal-weekdays" id="calWeekdays"></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </section>
+
+    <!-- SELECTED DATE -->
+    <section class="card selected-card" id="selectedCard" hidden>
+      <h2 data-i18n="selectedTitle">Selected Date</h2>
+      <div class="today-grid">
+        <div class="today-block">
+          <div class="today-label" data-i18n="gregorian">Gregorian</div>
+          <div class="today-main" id="selectedSolar">--</div>
+          <div class="today-sub" id="selectedWeekday">--</div>
+        </div>
+        <div class="today-block today-block-lunar">
+          <img class="zodiac-icon" id="selectedZodiacIcon" alt="">
+          <div class="today-block-text">
+            <div class="today-label" data-i18n="lunar">Lunar</div>
+            <div class="today-main" id="selectedLunar">--</div>
+            <div class="today-sub" id="selectedGanZhi">--</div>
+          </div>
+        </div>
+      </div>
+      <div class="today-extra" id="selectedExtra"></div>
+    </section>
+
+  </main>
+
+</div>
+
+<script src="lib/lunar.js"></script>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

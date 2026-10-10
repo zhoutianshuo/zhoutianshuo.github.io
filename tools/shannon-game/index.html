@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Shannon Game</title>
+<meta name="description" content="An interactive recreation of Claude Shannon's 1951 letter-guessing experiment that estimates the entropy of English in real time.">
+<script>
+  // follow the light/dark choice made on zhoutianshuo.github.io (al-folio stores it as "theme")
+  try {
+    var t = localStorage.getItem("theme");
+    if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+  } catch (e) {}
+</script>
+<style>
+  :root{
+    --paper:      #ffffff;
+    --panel:      transparent;
+    --panel-2:    transparent;
+    --ink:        #000000;
+    --ink-soft:   #333333;
+    --muted:      #828282;
+    --line:       rgba(0,0,0,.1);
+    --line-strong:rgba(0,0,0,.22);
+    --accent:     #b509ac;
+    --accent-ink: #ffffff;
+    --good:       #1f8f5c;
+    --bad:        #b83a29;
+    --shadow:     none;
+    --font:       "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:      #1c1c1d;
+      --panel:      transparent;
+      --panel-2:    transparent;
+      --ink:        #e8e8e8;
+      --ink-soft:   #c4c4c4;
+      --muted:      #828282;
+      --line:       #424246;
+      --line-strong:#5c5c61;
+      --accent:     #2698ba;
+      --accent-ink: #ffffff;
+      --good:       #52c084;
+      --bad:        #de6c56;
+      --shadow:     none;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:      #1c1c1d;
+    --panel:      transparent;
+    --panel-2:    transparent;
+    --ink:        #e8e8e8;
+    --ink-soft:   #c4c4c4;
+    --muted:      #828282;
+    --line:       #424246;
+    --line-strong:#5c5c61;
+    --accent:     #2698ba;
+    --accent-ink: #ffffff;
+    --good:       #52c084;
+    --bad:        #de6c56;
+    --shadow:     none;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font);
+    line-height:1.55;
+  }
+  .page{max-width:1080px;margin:0 auto;padding:2.75rem 1.5rem 3.5rem;}
+
+  h1,h2,h3{font-family:var(--font);text-wrap:balance;margin:0;}
+  .mono{font-family:var(--font);font-variant-numeric:tabular-nums;}
+
+  /* ---------- masthead ---------- */
+  .masthead{max-width:640px;margin:0 auto 3rem;text-align:center;}
+  .eyebrow{
+    font-family:var(--font);
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 .9rem;
+    font-weight:600;
+  }
+  .masthead h1{font-size:clamp(1.9rem,4.4vw,2.6rem);font-weight:300;letter-spacing:-.01em;}
+  .dek{color:var(--ink-soft);font-size:1.02rem;margin:.9rem auto 0;max-width:52ch;}
+
+  /* ---------- layout ---------- */
+  .console{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr);gap:1.5rem 3rem;align-items:start;}
+  @media (max-width:860px){ .console{grid-template-columns:1fr;} }
+
+  .panel-card{
+    background:transparent;
+    border:none;
+    border-top:1px solid var(--line);
+    border-radius:0;
+    box-shadow:none;
+  }
+
+  /* ---------- tape console ---------- */
+  .tape-panel{padding:1.5rem 0 1.75rem;}
+  .tape-sprockets{
+    height:9px;margin-bottom:1.1rem;border-radius:6px;
+    background-image:radial-gradient(circle, var(--line-strong) 1.6px, transparent 1.8px);
+    background-size:15px 100%;background-repeat:repeat-x;background-position:center;
+  }
+  .tape-scroll{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:1.1rem 1.1rem;
+  }
+  .tape{
+    font-family:var(--font);
+    font-weight:600;
+    display:flex;
+    flex-wrap:wrap;
+    gap:.28rem .22rem;
+    align-content:flex-start;
+  }
+  .tape-char{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:1.55rem;height:1.85rem;
+    font-size:1.05rem;
+    border-radius:5px;
+    border:1.5px dashed var(--line-strong);
+    background:var(--panel);
+    color:var(--ink);
+    position:relative;
+  }
+  .tape-char.revealed{border-style:solid;border-color:var(--line-strong);}
+  .tape-char.is-space.revealed{color:var(--muted);font-weight:400;}
+  .tape-char.current{
+    border-style:solid;border-color:var(--accent);
+    background:var(--panel);
+    animation:pulseCurrent 1.1s ease-in-out infinite;
+  }
+  .tape-char.just-in{animation:popIn .28s ease-out;}
+  @keyframes popIn{from{transform:scale(.6);opacity:0;}to{transform:none;opacity:1;}}
+  @keyframes pulseCurrent{
+    0%,100%{box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent);}
+    50%{box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 0%, transparent);}
+  }
+
+  .meta-row{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;align-items:baseline;margin-top:1rem;font-family:var(--font);}
+  .meta-row .remaining{font-size:.82rem;color:var(--muted);}
+  .meta-row .remaining b{color:var(--ink-soft);font-variant-numeric:tabular-nums;}
+
+  .warmup-row{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+    gap:.5rem 1rem;margin-top:.9rem;padding-top:.9rem;border-top:1px dashed var(--line);
+  }
+  .warmup-label{font-family:var(--font);font-size:.76rem;color:var(--muted);}
+  .pills{display:flex;gap:.4rem;}
+  .pill{
+    font-family:var(--font);font-size:.76rem;font-weight:500;
+    padding:.3rem .65rem;border-radius:999px;border:1px solid var(--line-strong);
+    background:var(--panel);color:var(--ink-soft);cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .pill:hover{border-color:var(--accent);color:var(--accent);}
+  .pill:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .pill.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+
+  .avail-readout{margin-top:1.15rem;}
+  .avail-readout .label{
+    font-family:var(--font);font-size:.68rem;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:.35rem;display:block;
+  }
+  .avail-readout .bracket{
+    font-family:var(--font);font-size:.82rem;color:var(--ink-soft);
+    word-break:break-all;line-height:1.5;
+  }
+
+  /* ---------- keyboard ---------- */
+  .keyboard{
+    margin-top:1.25rem;
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(2.15rem,1fr));
+    gap:.42rem;
+  }
+  .key{
+    font-family:var(--font);
+    font-weight:600;
+    font-size:.95rem;
+    height:2.5rem;
+    border-radius:7px;
+    border:1px solid var(--line-strong);
+    background:var(--panel);
+    color:var(--ink);
+    cursor:pointer;
+    transition:background .15s ease, color .15s ease, border-color .15s ease, transform .1s ease;
+  }
+  .key:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+  .key:active:not(:disabled){transform:scale(.94);}
+  .key:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .key.space{grid-column:1/-1;font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;}
+  .key:disabled{cursor:default;}
+  .key.used:disabled{opacity:.32;text-decoration:line-through;border-color:var(--line);}
+  .key.flash-good{animation:flashGood .5s ease;}
+  .key.flash-bad{animation:flashBad .45s ease;}
+  @keyframes flashGood{
+    0%{background:var(--good);border-color:var(--good);color:#fff;transform:scale(1.1);}
+    100%{background:var(--panel);border-color:var(--line-strong);color:var(--ink);transform:scale(1);}
+  }
+  @keyframes flashBad{
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-3px);}
+    40%{transform:translateX(3px);}
+    60%{transform:translateX(-2px);}
+    80%{transform:translateX(2px);}
+    0%{background:var(--bad);border-color:var(--bad);color:#fff;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .tape-char.current{animation:none;border-width:2px;}
+    .tape-char.just-in{animation:none;}
+    .key.flash-good, .key.flash-bad{animation:none;}
+  }
+
+  .controls{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:1.35rem;flex-wrap:wrap;}
+  .btn{
+    font-family:var(--font);font-weight:600;font-size:.88rem;
+    background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;
+    padding:.65rem 1.1rem;cursor:pointer;transition:filter .15s ease, transform .1s ease;
+  }
+  .btn:hover{filter:brightness(1.08);}
+  .btn:active{transform:scale(.97);}
+  .btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line-strong);}
+  .btn.ghost:hover{color:var(--ink-soft);border-color:var(--ink-soft);filter:none;}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  .completion-panel{display:none;margin-top:1.25rem;padding:1.25rem 1.4rem;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;}
+  .completion-panel.show{display:block;}
+  .completion-panel h3{font-size:1.05rem;margin-bottom:.4rem;}
+  .completion-panel p{font-family:var(--font);color:var(--ink-soft);margin:0 0 1rem;font-size:.95rem;}
+  .completion-panel .source{font-style:italic;color:var(--ink);}
+
+  /* ---------- stats panel ---------- */
+  .stats-panel{display:flex;flex-direction:column;gap:1rem;}
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;}
+  .stat-tile{
+    background:transparent;border:none;border-radius:0;
+    padding:.8rem .6rem;text-align:center;box-shadow:none;
+  }
+  .stat-value{
+    display:block;font-family:var(--font);font-weight:600;
+    font-size:1.35rem;font-variant-numeric:tabular-nums;color:var(--ink);
+  }
+  .stat-label{
+    display:block;font-family:var(--font);font-size:.66rem;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:.25rem;
+  }
+
+  .card{padding:1.5rem 0;}
+  .card h2{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:.9rem;}
+
+  .entropy-value{font-family:var(--font);font-size:1.6rem;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .entropy-value .unit{font-family:var(--font);font-size:.68rem;font-weight:500;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;margin-left:.35rem;}
+
+  .gauge{margin-top:1rem;position:relative;height:34px;}
+  .gauge-track{position:absolute;top:12px;left:0;right:0;height:8px;background:var(--panel-2);border:1px solid var(--line);border-radius:5px;overflow:visible;}
+  .gauge-range{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--accent);border-radius:5px;opacity:0;transition:left .35s ease, width .35s ease, opacity .3s ease;}
+  .gauge-tick{position:absolute;top:-3px;width:1px;height:14px;background:var(--line-strong);}
+  .gauge-tick .tick-label{position:absolute;top:16px;left:50%;transform:translateX(-50%);font-family:var(--font);font-size:.62rem;color:var(--muted);white-space:nowrap;}
+
+  .entropy-note{font-family:var(--font);font-size:.83rem;color:var(--muted);margin-top:1.4rem;line-height:1.5;}
+
+  .histogram{width:100%;height:auto;overflow:visible;}
+  .hist-bar{fill:var(--accent);}
+  .hist-bar:hover, .hist-bar:focus{fill:var(--good);outline:none;}
+  .hist-axis{fill:var(--muted);font-family:var(--font);}
+  .hist-value{fill:var(--ink-soft);font-family:var(--font);}
+
+  .tooltip{
+    position:fixed;pointer-events:none;z-index:50;
+    background:var(--ink);color:var(--paper);
+    font-family:var(--font);font-size:.76rem;font-weight:500;
+    padding:.4rem .6rem;border-radius:6px;box-shadow:var(--shadow);
+    opacity:0;transform:translate(-50%,-100%);transition:opacity .1s ease;
+    white-space:nowrap;
+  }
+  .tooltip.show{opacity:1;}
+
+  /* ---------- explainer + footer ---------- */
+  .explainer{max-width:760px;margin:2.5rem auto 0;font-family:var(--font);}
+  .explainer summary{
+    cursor:pointer;font-family:var(--font);font-weight:600;font-size:.95rem;
+    padding:.4rem 0;color:var(--ink);
+  }
+  .explainer summary:focus-visible{outline:2px solid var(--accent);}
+  .explainer[open] summary{margin-bottom:.6rem;}
+  .explainer p{color:var(--ink-soft);font-size:.96rem;margin:.6rem 0;}
+  .explainer p + p{margin-top:.9rem;}
+
+  footer{max-width:760px;margin:2.5rem auto 0;padding-top:1.25rem;border-top:1px solid var(--line);}
+  footer p{font-family:var(--font);font-size:.72rem;color:var(--muted);line-height:1.6;}
+  footer a{color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="masthead">
+    <p class="eyebrow">Bell System Technical Journal · 1951 · C. E. Shannon</p>
+    <h1>The Shannon Game</h1>
+    <p class="dek">A hidden passage of English is typed out one letter at a time. Guess each letter before it's revealed — every attempt tightens the bound on how much information English really carries.</p>
+  </header>
+
+  <main class="console">
+
+    <section class="tape-panel panel-card" aria-label="Guessing console">
+      <div class="tape-sprockets" aria-hidden="true"></div>
+      <div class="tape-scroll">
+        <div class="tape mono" id="tape"></div>
+      </div>
+
+      <div class="meta-row">
+        <span class="remaining">Letters remaining: <b id="remainingCount">–</b></span>
+        <span class="remaining">Current attempt: <b id="attemptCount">1</b></span>
+      </div>
+
+      <div class="warmup-row">
+        <span class="warmup-label" id="warmupLabel">Warm-up: reveal the first letters for free</span>
+        <div class="pills" id="warmupPills" role="group" aria-label="Letters to reveal for free before guessing starts">
+          <button class="pill" type="button" data-warmup="0">Blind</button>
+          <button class="pill" type="button" data-warmup="3">3</button>
+          <button class="pill" type="button" data-warmup="6">6</button>
+          <button class="pill" type="button" data-warmup="10">10</button>
+          <button class="pill" type="button" data-warmup="15">15</button>
+        </div>
+      </div>
+
+      <div class="avail-readout">
+        <span class="label">Available letters</span>
+        <div class="bracket mono" id="availReadout">[-------------------------]</div>
+      </div>
+
+      <div class="keyboard" id="keyboard" role="group" aria-label="Letter keys"></div>
+
+      <div class="controls">
+        <button class="btn ghost" id="newPassageBtn" type="button">New passage</button>
+        <button class="btn" id="resetBtn" type="button">Reset stats</button>
+      </div>
+
+      <div class="completion-panel" id="completionPanel">
+        <h3>Passage complete</h3>
+        <p id="completionText"></p>
+        <button class="btn" id="playAgainBtn" type="button">Guess another passage</button>
+      </div>
+    </section>
+
+    <aside class="stats-panel" aria-label="Live statistics">
+
+      <div class="stat-row">
+        <div class="stat-tile">
+          <span class="stat-value mono" id="statChars">0</span>
+          <span class="stat-label">Letters guessed</span>
+        </div>
+        <div class="stat-tile">
+          <span class="stat-value mono" id="statAvg">–</span>
+          <span class="stat-label">Avg. guesses</span>
+        </div>
+        <div class="stat-tile">
+          <span class="stat-value mono" id="statRedundancy">–</span>
+          <span class="stat-label">Redundancy</span>
+        </div>
+      </div>
+
+      <div class="card panel-card">
+        <h2>Entropy estimate</h2>
+        <div class="entropy-value">
+          <span id="entLow">0.00</span>–<span id="entHigh">0.00</span><span class="unit">bits / letter</span>
+        </div>
+        <div class="gauge">
+          <div class="gauge-track">
+            <div class="gauge-range" id="gaugeRange"></div>
+            <div class="gauge-tick" id="tickShannon" style="left:calc((1/4.7549)*100%)">
+              <span class="tick-label">≈1 (Shannon)</span>
+            </div>
+            <div class="gauge-tick" style="left:0%"><span class="tick-label">0</span></div>
+            <div class="gauge-tick" style="left:100%"><span class="tick-label" style="transform:translateX(-100%)">4.75 max</span></div>
+          </div>
+        </div>
+        <p class="entropy-note">Bounds from Shannon's guessing-game formula. Maximum for 27 symbols (A–Z, space) is log₂27 ≈ 4.75 bits. Shannon's 1951 experiment put English at roughly 0.6–1.3 bits/letter — about 75% redundant.</p>
+      </div>
+
+      <div class="card panel-card">
+        <h2>Guesses per letter</h2>
+        <svg class="histogram" id="histogram" role="img" aria-label="Histogram of how many guesses each letter required"></svg>
+      </div>
+
+    </aside>
+  </main>
+
+  <details class="explainer">
+    <summary>How this works, and why it matters</summary>
+    <p>In 1951, Claude Shannon asked a simple question: if you already know English, how much genuine information does each letter of a sentence actually carry? He tested this by having someone guess a hidden passage letter by letter — after seeing everything typed so far, they guessed until they got the next letter right, and Shannon counted how many tries it took.</p>
+    <p>If English were random, you'd need to search all 27 symbols (26 letters plus space) on average, for an entropy of log₂27 ≈ 4.75 bits per letter. But people usually guess correctly on the first or second try, because English is full of redundancy — spelling patterns, common words, grammar. Shannon used the distribution of guess-counts to compute a lower and upper bound on the true entropy, and estimated English at roughly 0.6 to 1.3 bits per letter: about 75% redundant.</p>
+    <p>This game reproduces that experiment. Your live "entropy estimate" uses Shannon's exact formula — computed from however many letters you've guessed so far, accumulated across passages so the bound keeps tightening the longer you play. The "warm-up" setting reveals the first few letters of each passage for free before guessing starts, since predicting the very first letter with zero context is unusually hard — those free letters aren't counted toward your stats, only the ones you actually guess.</p>
+  </details>
+
+  <footer>
+    <p>C. E. Shannon, "Prediction and Entropy of Printed English," <em>Bell System Technical Journal</em> 30 (1951). Guessing-game mechanics adapted from Liang Huang's <a href="https://github.com/lianghuang3/shannon_game" target="_blank" rel="noopener">shannon_game</a>.</p>
+  </footer>
+
+</div>
+
+<div class="tooltip mono" id="tooltip"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LETTERSPACE = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ".split("");
+  var MAX_ENTROPY = Math.log2(27);
+
+  var LITERARY_PASSAGES = [
+    { text: "IT IS A TRUTH UNIVERSALLY ACKNOWLEDGED THAT A SINGLE MAN IN WANT OF A WIFE",
+      source: "Jane Austen, Pride and Prejudice (1813)" },
+    { text: "CALL ME ISHMAEL SOME YEARS AGO HAVING LITTLE OR NO MONEY IN MY PURSE",
+      source: "Herman Melville, Moby-Dick (1851)" },
+    { text: "IT WAS THE BEST OF TIMES IT WAS THE WORST OF TIMES IT WAS THE AGE OF WISDOM",
+      source: "Charles Dickens, A Tale of Two Cities (1859)" },
+    { text: "WE HOLD THESE TRUTHS TO BE SELF EVIDENT THAT ALL MEN ARE CREATED EQUAL",
+      source: "The Declaration of Independence (1776)" },
+    { text: "TO SHERLOCK HOLMES SHE IS ALWAYS THE WOMAN I HAVE SELDOM HEARD HIM MENTION HER NAME",
+      source: "Arthur Conan Doyle, A Scandal in Bohemia (1891)" },
+    { text: "FOUR SCORE AND SEVEN YEARS AGO OUR FATHERS BROUGHT FORTH A NEW NATION",
+      source: "Abraham Lincoln, The Gettysburg Address (1863)" },
+    { text: "IN THE BEGINNING GOD CREATED THE HEAVEN AND THE EARTH",
+      source: "Genesis 1:1, King James Bible (1611)" },
+    { text: "THE QUICK BROWN FOX JUMPS OVER THE LAZY DOG WHILE THE ENGINEER MEASURES ENTROPY",
+      source: "a pangram, adapted for the occasion" }
+  ];
+
+  // 1,000 sentences mined from the Brown Corpus (freely distributed for
+  // linguistic research/education; genres per its own category scheme).
+var BROWN_CATEGORIES = ["Humor", "Learned", "Religion", "News", "Belles-Lettres", "Mystery Fiction", "Fiction", "Government", "Romance Fiction", "Editorial", "Hobbies", "Science Fiction", "Popular Lore", "Adventure Fiction", "Reviews"];
+var BROWN_PASSAGES = [
+  ["THE INCIDENT ASIDE FROM REFLECTING ON WELCHS POLITICAL CAREER HAD ALL BUT WRECKED HIS HOME LIFE",0],["THE ELECTRON OPTICAL SYSTEM MAY BE EITHER A MAGNETIC OR ELECTROSTATIC ONE",1],["CAPE CANAVERALS ACHIEVEMENTS THUNDER FORTH FROM THE RADIO TELEVISION AND NEWSPAPER",2],["IF W W S RETIRING SOON AS HINTED HE AINT TALKING YET",3],
+  ["IF OBEYED THE LAW BRINGS ORDER AND SATISFACTION",4],["THE SIDE SLOPES WERE COATED WITH FIBERGLAS MATTING COATED WITH ASPHALT TO PREVENT EROSION",1],["AND THOSE OF US WHO SO RICHLY BENEFIT FROM IT SHOULD BE THE LAST TO DESPISE IT",2],["HE WAS A SALESMAN FOR SOMETHING OR OTHER AND MUST HAVE BEEN TRANSFERRED",5],
+  ["THEY WENT TO THE PAWNSHOP OF JOSEPH MILLER OF SIXTH AVENUE",4],["PAMELA NORTH SAID HI TO HER CATS AND ADDED THAT PROPER CATS MET THEIR HUMANS AT THE DOOR",5],["REPUTEDLY IT COULD OUTRUN UNDERWATER THE FASTEST DESTROYERS",3],["MA NEVER WENT NEAR THE OLD MAN WHEN HE WAS SLEEPING IT OFF",6],
+  ["THEY COULD BE SENT TO U S PORTS FOR RULINGS WHETHER CARGO SHOULD BE CONFISCATED",7],["RAN AWAY ON A BLACK NIGHT WITH A LAWFUL WEDDED MAN",8],["IT ALSO IMPLIES THAT A MAN WANTS HIS FUTURE TO BE FREE FROM THE MISTAKES OF THE PAST",9],["WE KNOW TOO THAT HEALTH IS NEVER HARMED BY SUMMER COOLING",10],
+  ["HE BASES HIS APPROACH ON THE BELIEF THAT ANYTHING CAN FOLLOW ANYTHING",4],["THESE ARE NOT HOWEVER DIFFERENCES IN FEDERAL STRUCTURE",4],["MORE THAN COPIES HAVE BEEN SENT OUT TO PROSPECTIVE CLIENTS",7],["OH I FORGET AND HELVAS VOICE WAS REALLY CONTRITE",11],
+  ["THE STRUCTURE APPEARS TO BE UNIQUE AMONG OOH COMPOUNDS BUT IS THE SAME AS THAT ASSUMED BY AF",1],["BUT CONTRARY TO WHITEHEAD PHILOSOPHY IS NOT A SYNONYM FOR PLATO",1],["BUT THE KENNEDY ADMINISTRATION DOESNT FAVOR IMPORT QUOTAS",3],["THE GRAPH OF F HAS AT LEAST ONE COMPONENT WHOSE SUPPORT IS THE ENTIRE INTERVAL AJ",1],
+  ["THE SHORTAGE WAS DISCOVERED AFTER HUFF FAILED TO REPORT FOR WORK ON SEPT",3],["BUT IT WILL INCLUDE ODD OFFICEHOLDERS ORGANIZATION LEADERS AND INTERESTED PARTY PEOPLE",9],["SECOND IF THERE IS EVER A PERFECT TIME TO PULL THE RUG OUT FROM UNDER HIM ITS ON MANEUVERS",12],["THE POLICE WILL HAVE GONE OVER EVERY SQUARE INCH OF THE PLACE WITH A FINE TOOTH COMB",5],
+  ["INSTEAD OF GRABBING WITH HANDS SHE MANIPULATED MECHANICAL EXTENSIONS",11],["IT REACHED DONALD KRUGER IN HIS MASSIVE HOME IN BURLINGAME",13],["HE READ HENRY JAMES AND USED TO PRETEND PROFUNDITY THROUGH EYE BEAMINGS AT PEOPLE",0],["THE OLD GAL STARED AT ME WITH HER HARD EYES SAID SHE DIDNT CALL",5],
+  ["HE INTIMATED THAT THEY WERENT DOING THE COUNTRY MUCH GOOD IN THE COLD WAR",14],["YOU MAY TAKE HIS NAME UPON YOUR LIPS IN OATHS AND CURSES IF YOU SO CHOOSE",2],["ORDINARY CAREY WILLIAMS ARMED WITH A PISTOL STOOD BY AT THE POLLS TO INSURE ORDER",3],["HE BROUGHT WITH HIM A MIXTURE OF MYRRH AND ALOES OF ABOUT A HUNDRED POUNDS WEIGHT",6],
+  ["HOW AND WHERE TO APPLY FOR FINANCIAL ASSISTANCE",7],["THE TAKING OF THESE STEPS INVOLVES TOUGH INTERNAL POLICY DECISIONS",7],["ITS BIGGER THAN IT HAS TO BE THOUGH I DONT SEE WHERE ITS DOING ANY HARM",13],["SHE COULDNT SEE HOW HER DEATH COULD AFFECT MAUDE",5],
+  ["MOREOVER SHE HAD PHYSICAL AS WELL AS MENTAL VIGOR",12],["MR SMITH LIKE THE PRESENT SECRETARY GENERAL IS A LAWYER",7],["NEW RULE NO RESTUDY WHAT YOUR MEN DO TO HELP THEM WASTE LESS OF THE TIME YOU PAY FOR",10],["MUSIC IS FURNISHED BY THE CARLETON COLLEGE CHOIR",7],
+  ["ONLY THEN PERHAPS WILL HE REVEAL HIS JEWELS AND HIS BARGAINS",12],["LESS THAN THREE HOURS AGO WED DECIDED IN MAXINE WELLSS PAD ON COSMO TO COMMIT A TRIAL MURDER",5],["AN ORDINARY HOT BATH OR SHOWER WILL DO THE SAME",9],["WE HAVE NO ANSWER AS TO WHY WE ARE NOT ALARMED",2],
+  ["AND WHAT NEWS SARAH THOUGHT AS SATIRICALLY AS MAUDE MIGHT HAVE SAID IT",5],["STEREO BGS IS A GOOD SAMPLE OF THE SPECIAL ELEGANT ART OF ENGLISH MADRIGAL SINGING",14],["HOAG DESCENDED THE STONE STEPS TO THE STREET AND LOOKED UP AT THE BUILDING",5],["HE IS NOT TALKING IN THE MAIN ABOUT PROBABILITIES RISKS AND DANGER IN GENERAL",2],
+  ["FOR LARGE LETTERS E G THERMOFORMED OF ACRYLIC OR BUTYRATE THERE ARE OTHER TECHNIQUES",10],["AND THE DOCTRINE OF ORIGINAL SIN IS COMPOUNDED OF INJUSTICE",4],["CLAYTON TRIED TO CALL BACK THE FACE OF THE MAN HE HAD KNOWN",13],["SOME PASTORS WRITE A LETTER THE SAME NIGHT THE DECISION IS REPORTED BY THE VISITORS",2],
+  ["SHE ASKED HOPEFULLY AS SHE RECOGNIZED THE SCOUT SERVICE UNIFORM",11],["LAST OCTOBER HE GAVE A PUBLIC SPEECH IN WASHINGTON D C ENTITLED ARE WOMEN HERE TO STAY",3],["THE WORN TEDDY BEAR A TINY SUITCASE THAT JIM CARRIED AND THE CLOTHES SHE WORE WERE ALL SHE HAD",8],["HE IS PUBLICLY ON RECORD AS BELIEVING MR DE SAPIO SHOULD BE REPLACED FOR THE GOOD OF THE PARTY",3],
+  ["GROSSE RUBBED THE BRIDGE OF HIS NOSE WHERE IT WAS SWOLLEN",5],["MRS PASTERN HAD BEEN GIVEN SIXTEEN NAMES A BUNDLE OF LITERATURE AND A PRINTED BOOK OF RECEIPTS",6],["YOU COULD BURN DOWN THIS WHOLE MOUNTAINSIDE WITH A FIRE THAT SIZE",13],["OPERA IN THE GRAND TRADITION ALONG WITH MAH JONGG SEEMS TO BE STAGING A WELL DESERVED COMEBACK",0],
+  ["A LOT OF THOUGHT WENT INTO STORAGE SPACE CONSTRUCTION",10],["MERCER THOUGHT THAT SHE LOOKED VERY DISTINGUISHED AND CHARMING",11],["DID MEN BECOME PERFECTIONISTS AS THEY GREW OLDER POLISHING POLISHING RELUCTANT TO LET GO",0],["IN THE END WE RAN INTO COMMUNIST ARTILLERY FIRE",12],
+  ["THE SHELTER SHOWN WOULD PROVIDE ALMOST ABSOLUTE FALLOUT PROTECTION",7],["SHE HAD NO WAY OF KNOWING IN ADVANCE WHETHER AN OPPORTUNITY FOR MURDER EXISTED",12],["YET OUR ECONOMY CLINGS INEXORABLY TO RECOGNITION OF MANAGERIAL STATUS AS THE GAGE OF SUCCESS",10],["WHAT A TERRIBLE THING THAT WAILING WALL IN BERLIN",2],
+  ["FAITH IN THE BUDDHA AND STAYING AT PEACE WITH THE PHIS THE SPIRITS",12],["THE SECOND LEVEL SENIOR ENGINEER RATES SLIGHTLY BELOW FIRST LEVEL SUPERVISION",10],["HE LOOKED AT THE LINED FACE WITH VAGUE INTEREST",6],["HE CAME HOME OVERHEATED RAN STRAIGHT TO THE ICE CHEST AND GULPED SHIVERY COLD WATER",6],
+  ["WITH QUIBS AND GIBES THE POLICEMEN AGAIN STARTED DIGGING",0],["TO HAVE REFUSED WOULD HAVE BEEN POLITICAL SUICIDE",9],["HELL PLENTY OF GUYS GET LET OUT AND COME BACK LATER",8],["BROOKS ROBINSON IS GREAT AND IT IS CONCEIVABLE THAT HELL DO EVEN BETTER IN THAN HE DID IN",9],
+  ["SURELY HE WAS STILL RESTING SNUGLY IN MY HEART",8],["LET NOT YOUR HEART BE TROUBLED NEITHER LET IT BE AFRAID",2],["SELENA WAS THE WRONG WOMAN FOR THESE CRUDITIES",6],["FIVE YEARS LATER HE WAS AWARDED THE UNIVERSITYS DEGREE IN LAW",3],
+  ["BODY HEAT IN THE CLOSE QUARTERS WILL HELP KEEP UP THE TEMPERATURE",7],["ID THINK THAT YOU EVEN MORE THAN I WOULD BE WONDERING WHAT THEYRE UP TO",5],["NOW HE SAID WE GOT TO PUT IN SOME OUTLETS FOR THEM POWER TOOLS",0],["AND THE SURFACE IS DRIVEN BACK IN ITS VERY SURFACENESS ONLY BY THIS CONTRAST",1],
+  ["YOU TOO WERE A STUPID JACKASS UNTIL YOU POISONED ME",11],["WE USE TERMS FROM OUR PERSONAL EXPERIENCE WITH INDIVIDUALS SUCH AS TRUST CHEAT AND GET TOUGH",4],["MANY HOLLYWOOD FILMS MANAGE SOMEHOW TO BE AUTHENTIC BUT NOT REALISTIC",14],["THERE ARE NO REASONABLE PROSPECTS THAT THESE CONDITIONS WILL BE CORRECTED OR CHANGED",7],
+  ["I WISHED TO PREPARE MYSELF BUT DID NOT EVEN KNOW WHAT SORT OF CLOTHES I OUGHT TO BE WEARING",13],["STUDENTS HAVE BEEN USING ELECTRIC COMPUTERS AND HIGH SPEED MOVIE CAMERAS DURING THE STUDY",3],["THE ORGANIC LOADING ON THE POND WAS SLIGHTLY UNDER LB BOD DAY ACRE",1],["HE KNEW HE SHOULD GET TO CAP BUT HE DIDNT KNOW HOW",6],
+  ["CAROL STRONG OF CEDAR MILL COOKED THE CHAMPIONSHIP JUNIOR DOLLAR DINNER",3],["REMARKS OF HON JOSEPH P ADDABBO OF NEW YORK MR ADDABBO",7],["I MUST STATE THAT THE FASTER THINGS HAPPENED THE SLOWER THEY HAPPENED",6],["EKSTROHM WAS STARTLED IN THE MORNING BY A BANGING ON THE HATCH OF HIS BUBBLE",11],
+  ["MACNEFF STOPPED PACING TO STARE AT HAL WITH HIS PALE BLUE EYES",11],["WE ARE AS WE KNOW UTTERLY DEPENDENT ON THE QUALITY OF ADVICE WE GET",7],["MOREOVER EVEN GETTING THIS ACROSS WOULD BE DIFFICULT",11],["IM USUALLY A VERY STRONG WOMAN BUT IM AWFULLY TIRED",13],
+  ["THOSE DODGERS WON THEIR FIRST GAMES AND OWNED A MARK AND A NINE GAME LEAD BY MAY",3],["IT SHOULD BE NO MORE DIFFICULT TO DELIVER SUCH DEVICES THAN OTHER WEAPONS",1],["SPRING AND SUMMER MAY BE HERE OFFICIALLY BUT THOSE THERMOS STAY IN",10],["HE WAS THE CAPTAIN SO HE COULD ASK QUESTIONS LIKE THAT",11],
+  ["WHILE THE COLD WAR RAGED IT WAS EASY TO BLAME IT ALL ON YALTA",1],["HIS DARK BROWS WHICH HAD BEEN LOWERED IN ANGER SMOOTHED",8],["MULTIPLY THE RESULT OBTAINED IN ITEM ABOVE BY THE AMOUNT USED FOR EACH STATE IN ITEM ABOVE",7],["YOU MEAN THIS PUNK CAN BRUSH ME ASIDE AND IVE GOT TO HOLD STILL FOR IT",11],
+  ["IN THE PLASTIC ARTS A VERY SIMILAR SITUATION EXISTS",1],["FASHION A SHARP SCRIBING POINT ABOUT LONG ON ONE END USING SWISS PATTERN FILES",10],["HIS COMPANY SPICE NICE WILL RECEIVE A AWARD WHICH WILL BE DISTRIBUTED AMONG THE CHARTER MEMBERS",3],["HE TURNED SLOWLY AND BEGAN TO CRAWL BACK UP THE BANK TOWARD THE RAMPART",6],
+  ["OVER IN BARRE THE STREETS HAD BEEN DEEP IN SWIRLING WATER AND BRIDGES WERE CRUMPLED AND GONE",12],["FUNDS MAY BE READILY DONATED FOR SOME PURPOSES BUT NOT OTHERS",7],["THEY CREPT DOWN THE MUDDY SLOPE TOWARD THE WAITING BOATS",6],["SPECTACULAR DISPLAYS OF THIS SORT ARE RELATIVELY RARE IN THE ENTIRE LAND SURFACE OF THE EARTH",14],
+  ["HE WAS ABSOLUTELY UNFAMILIAR WITH IT BECAUSE HE HAD NO VISUAL MEMORY AT ALL",1],["ALSO MAKE SURE THERMOMETER DOES NOT TOUCH THE REVOLVING SPIT OR HIT THE COALS",10],["REMEMBER WHEN THE LITTLE HAND IS STRAIGHT UP THATS NEGATIVE",11],["THE REAL FRANCO GERMAN FRONTIER WAS BEYOND THE TOWNS LIMITS",4],
+  ["THAT DONE I TOLD MISS GROGGINS TO TAKE HER PATIENT BACK TO BED AND AGAIN PUT HER OUT OF MY MIND",8],["THE ADJACENT DRIVER IN LANE B HAS THREE CHOICES OPEN TO HIM",9],["WITH NO COMPANY TO INTERFERE HE KEPT CLOSE CONTROL OVER ALL THE TRADERS",12],["FACTORIES ARE LOCATED HERE AND IN PRATTVILLE ALA",3],
+  ["BUT EVEN MOTHERS LOVING ATTITUDE WILL NOT ALWAYS PREVENT MISBEHAVIOR",9],["ONCE THE SOFT PRETTY MOTH FOUND THE BRIGHT LIGHT SHE HAD ALWAYS WANTED",8],["THEN THERE HAD BEEN ANOTHER HEAD BESIDE HIS OWN",11],["RICHARD TUCKER SANG EDGARDO IN GLORIOUS VOICE",14],
+  ["IN THE SAME VEIN A CERTAIN SHORT STORY PLOT HAS BEEN OVERWORKED",4],["IT IS THE WAGES OF SIN AND ITS STING IS THE LAW",2],["THE REALITY OF ORESTES ENTAILS THAT OF THE FURIES",4],["THIS IS NOW A BILLION BUSINESS UP FROM BILLION IN AND SHOULD REACH BILLION IN",7],
+  ["ANY APPROACH TOWARD SUCH A SYSTEM LOOKS TOWARD SAVING AND SECURITY",7],["HE MIGHT BARGE INTO A GALLERY START HAGGLING OVER PRICES WITHOUT SO MUCH AS A WORD OF GREETING",3],["AT THAT POINT THE ADMINISTRATION WILL HAVE LITTLE REASON TO HANG ONTO GEN SWING",9],["IF MOST OF THEM WERENT EXACTLY SPECIFIC WELL THATS THE WAY IT IS IN LIFE I GUESS",14],
+  ["A JUNIOR WHO WON TWO OR MORE WINS IN THE OPEN CLASS WAS ELIGIBLE",10],["INTERVIEW THE BELLBOY AND CHAMBERMAID WHO WAITED ON BEAUCLERK",5],["HIS NEW BOOK ENTITLED SLUMS AND SUBURBS CALLS FOR FAST AND DRASTIC ACTION TO AVERT DISASTER",9],["TWO CARS CAME OVER A CREST THEIR CHROME AND GLASS FLASHING",13],
+  ["IF ONE SHUNS THEY SAY IT IS BECAUSE ONE DESIRES",4],["IT CAN MEAN THE DIFFERENCE BETWEEN PARTICIPATION AND INACTION SPIRITUAL GROWTH AND DECAY",2],["SOME OF THEM WERE WARTS UNTIL THEY GOT PROMOTED",11],["THAT OBJECTIVE SET THE HIGH STAKES AND DRAMA OF THE VIENNA MEETING",3],
+  ["THE NEW BIRTH IS THE IMPARTATION OF THE DIVINE NATURE",2],["ANOTHER CASE INVOLVES A NEWSPAPER REPORTER WHO TRIPPED UP A POLITICIAN",0],["LAUREN LANDIS RUBBED HER FACE AGAINST THE BLANKET",5],["FOR A FEW INNINGS THE ANNISTON TEAM COULDNT FIGURE HIM OUT",8],
+  ["IN DISTAL REGIONS ITS DIAMETER WOULD BE ONE FOURTH TO ONE FIFTH THAT OF THE PULMONARY ARTERY",1],["PAYNE DISMOUNTED IN MADISON PLACE AND HANDED THE REINS TO HEROLD",6],["A SIGNAL CANNOT BE CLEARED UNTIL ALL THE RELATED TURNOUTS ARE PROPERLY THROWN AND LOCKED",10],["A BLOWER MAY BE INSTALLED TO INCREASE COMFORT",7],
+  ["I HAD THOUGHT WE WOULD NEVER AGAIN SPEAK TO EACH OTHER",11],["SINGING AS APPLICABLE TO HERSELF REQUIRED RESEARCH",11],["THE RATIONALE FOR THIS AVOIDANCE WAS MOST FREQUENTLY EXPRESSED IN ECONOMIC TERMS",2],["AND THE DANCES AND SONGS FROM THE TATRAS CONTAIN A MAGNIFICENT DANCE FOR THE MEN",14],
+  ["HE URGED NEW JERSEY TO BECOME A FULL PARTNER IN THE COURAGEOUS ACTIONS OF PRESIDENT KENNEDY",3],["WE DO SO BY DISPROVING THE PRESUMPTION ON WHICH IT IS BASED",1],["UNIT PRICES FOR STATE VEHICLES ARE INVARIABLY LOWER THAN TO THE GENERAL PUBLIC",7],["ESPECIALLY IF ONE IS TRAVELLING OR DINING OUT A GREAT DEAL THEIR IMPORTANCE MOUNTS",12],
+  ["SURVIVORS INCLUDE A SON CHARLES R FERGESON MEMPHIS TENN",3],["HE WOULD NEVER HAVE BELIEVED WITHOUT SEEING IT THAT THE BIZARRE LITTLE VESSEL COULD GO SO FAST",11],["WHO THEN IS OF SUFFICIENT STATURE TO LODGE WITH LENIN",9],["GRAZIE WAS MEAN QUIETLY MEAN AND BITTERLY UNFUNNILY SARCASTIC",0],
+  ["I WAS TWENTY ONE BACK THEN IN THE ARMY AND FOG PUT OUR PLANE DOWN AT ORLY INSTEAD OF RHINE MAIN",8],["BUT MARTIN SELDOM FELT THE IMPULSE TO TALK ABOUT ANYTHING",8],["FOR HIM TO DIVORCE GOD AND WIFE SIMULTANEOUSLY WOULD BE BAD PUBLICITY",4],["WHENEVER HE DEIGNED TO APPEAR AT THE STUDIO HE WAS HUNG OVER UNCOOPERATIVE RUDE AND INSULTING",0],
+  ["SO I TOLD HER MRS ROBERTS WOULD PAY HER IN THE MORNING AND SHE SCOOTED OFF TO HER OWN APARTMENT",8],["IT WAS HISTORY THAT MUST BE IN ERROR NOT THE HISTORIAN",4],["MISS GILES ALWAYS USED TO REFER TO HER AS SISTER",12],["EACH HAD DEVELOPED A HAIR TRIGGER CHUCKLE AND THE HABIT OF SAYING ZOUNDS",0],
+  ["THEY TOLD POLICE THE INTRUDERS TOOK A MINK COAT WORTH A BLACK PERSIAN LAMB JACKET WORTH",3],["EXCEPT THAT NO STATE SHALL HAVE A FEDERAL SHARE LESS THAN NOR MORE THAN",7],["HE WANTED THE ARROGANT MARINE TO KNOW FEAR AND SO HE AIMED ABOVE THE HEAD",13],["ARLENE HAD TAUGHT THEM A NEW WAY TO HAVE FUN IN THEIR LITTLE PRIVATE AREA",0],
+  ["WHOEVER RISES TO THE OCCASION WALKS A TREACHEROUS PATH TO LEADERSHIP",14],["AND IT PRESENTED ITSELF TO HIM AS IT WOULD TO ANY STRANGER IMPERVIOUS COMPLETE IN ITSELF",6],["IN THIS HE IS STICKING WITH TRADITION HOWEVER FAR REMOVED FROM IT HE MAY SEEM TO BE",14],["IF NIKITA BUYS A SMALL PLOT IN SOME MODEST RURAL CEMETERY EVERYONE WILL UNDERSTAND",9],
+  ["IN THE UNITED NATIONS CHARTER THE RIGHT OF SELF DETERMINATION IS ALSO AN ESSENTIAL PRINCIPLE",9],["EVEN THE EYES OF THE SMALLEST CHILDREN SEEMED MALICIOUS",5],["WHAT THEY FEARED MOST WAS WAR OR POLITICAL INSTABILITY IN THEIR OWN COUNTRY",4],["NOBODY EVER APPRECIATED HIS JOKES AS MUCH AS SABELLA",8],
+  ["RADIO IS EASILY OUTDISTANCING TELEVISION IN ITS STRIDES TO REACH THE MINORITY LISTENER",14],["IF YOU HAVE A TO INCH DRAIN PIPE YOU MAY EASILY WASH OUT ALL THE DEBRIS WHEN THE GRATE IS OUT",10],["THAT NOTION IS FANTASTICALLY WRONG HEADED FROM SEVERAL POINTS OF VIEW",9],["HERE WAS A MAN WITH AN ENORMOUS GIFT FOR LIVING AS WELL AS THINKING",14],
+  ["WITH SIX IN THE GROUP THE COST COMES TO JUST A NICKEL A DAY PER PERSON ON THE DAILY FEE",10],["THE TAOISTS BELIEVED THE UNITY COULD BE INFLUENCED BY PROPER MAGICAL MANIPULATION",2],["ON SOME DISTANT FARM A ROOSTER CROWED AND FAR DOWN THE VALLEY AN ASSOCIATE ANSWERED",0],["IF THIS CHOICE IS LESS EXCITING THAN NEW YORK DEMOCRATS MAY WISH IT NEVERTHELESS MUST BE MADE",9],
+  ["THEN I REMEMBERED THAT THE GIRLS HAD HAD A BANANA FOR DESSERT EVERY DAY FOR THE LAST WEEK",0],["NOTE HOWEVER THAT IT IS SIX INCHES SHORTER AT THE FORWARD END",10],["IT HAD BEEN THERE YEARS OR MORE AND EVERYBODY IN TOWN BLACK AND WHITE KNEW OF IT",6],["IT IS EQUIPPED WITH ELECTRONIC CONTROLS THAT CAN BE SET TO HOLD PRECISE TENSION AND SPEED",7],
+  ["RYAN HEFTED HIS BULK UP AND SUPPORTED IT ON ONE ELBOW",11],["THEY ACCUSE THEIR ENEMIES OF PRECISELY THE CRIMES OF WHICH THEY THEMSELVES ARE MOST GUILTY",9],["SO WE GET THE WHOLE STATE COVERED WITH PEAS ABOUT FOUR FEET DEEP",2],["TO THE REPUBLICANS NO VICTORY COULD HAVE BEEN MORE COMPLETE",4],
+  ["HE DID NOT SPILL OVER WITH HATRED FOR THE ENEMY",6],["HERE AN ENTRY IS A FORM PLUS THE INFORMATION THAT PERTAINS TO IT",1],["THEN HE WENT ON TO THE CHEYENNES AND TOLD THEM THAT THE SIOUX WAS GOIN TO MOVE UP",13],["HE REPLENISHED THE DIPPER AND HANDED IT TO HIS YOUNG WIFE RIDING THE HURRICANE DECK",13],
+  ["SHE SEEMED OVERLY TALL HER BROW KNITTED IN CONCERN",8],["WHAT WITH ALL THOSE PRETTY GIRLS AROUND THEY HAD A HARD TIME",3],["THE RESPONSE OF REACTION IS DOMINATED BY A CONCERN FOR WHAT IS VANISHING",4],["IN SEVENTEEN WEEKS THE MILITARY FRONT WAS DRIVEN SOUTHWARD MORE THAN MILES",4],
+  ["ONLY THIS OLD MANS CONNIVANCE WAS EVEN LESS TO HER TASTE THAN SELMA COTTERS OPEN CENSURE",8],["SHE DISCIPLINED HERSELF DAILY TO DO WHAT MUST BE DONE",6],["NOTE DIRECTIONS ARE WRITTEN FOR THOSE WHO HAVE HAD PREVIOUS EXPERIENCE IN MAKING POTTERY",10],["AND THE THE UPPER YELLOW RIVER IN THE NORTHWEST",2],
+  ["AT THE DOOR DAVE PAUSED TO FEEL FOR THE LATCH",5],["THE RAIN DRIPPED ON THE FREEZING LOBLOLLY OF THE STREET",6],["ARNOLD SENT FOR JOE DEY THE EXECUTIVE SECRETARY OF THE GOLF ASSOCIATION",3],["IN THE STANDS HE IS LONELY AND LOST NO MATTER HOW MANY ARE ABOUT HIM",9],
+  ["JACK FELT A WAVE OF COMPLETE ELATION BUT IN A SECOND IT HAD VANISHED WITHOUT A TRACE",11],["BUT REGATTAS ARE SCHEDULED RIGHT UP TO CHRISTMAS",14],["WHENEVER THE PLACE WAS CLEANED OR A MEAL SERVED IT WAS PRECIOUS WHO DID THE WORK",6],["CONTINUING GLIBLY IN THIS VEIN HE PAUSED TO COMFORT HER DONT YOU WORRY",12],
+  ["BUT TO THE INFURIATION OF SCIENTISTS FOR NO KNOWN REASON NOT ALL OF THEM DID",11],["HE COMPLAINED TO ME ONCE THAT I MUST TALK TO HER",8],["WE WOULD WRITE TO ONE ANOTHER AND MAKE A DEFINITE PLAN",6],["THE YELLOW PAGES OF THE TELEPHONE BOOK WERE AMAZINGLY THIN",0],
+  ["MANY AUTISTIC CHILDREN GROW UP TO LEAD RELATIVELY NORMAL LIVES",9],["YOU WOULDNT WANT ME TO SAY YES WITHOUT MAKING SURE HIS INTENTIONS ARE HONORABLE WOULD YOU",5],["THE JAILS WERE FILLED TO OVERFLOWING WITH POLITICAL PRISONERS WHO HAD INCURRED HIS DISPLEASURE",9],["HE THOUGHT OF THE MEN THE NAMELESS THOUSANDS HUDDLING IN THEM",6],
+  ["IF THEY DO AS WELL AS THEY DID IN THERE CAN BE NO COMPLAINT",9],["MOREOVER THE SUNS PATH OVER EARTH DESCRIBED A SEGMENT OF A GREAT CIRCLE",4],["SHE FROWNED AT HIS GREEN PAJAMAS WITH THE YELLOW MOONS",8],["AT OCLOCK ON THE MORNING OF AUGUST THEY WERE IN DOUBT NO LONGER",12],
+  ["THIS FILLY IS ANOTHER ADIOS THAT WANTS TO TROT AND TROT SHE DID UNTIL FORCED TO DO OTHERWISE",10],["FOR NAVIGATION AIDS TO GIVE ACCURATE BEARINGS TO SHIPS AND AIRCRAFT",4],["IF THE STUDENT DROPS OUT OF HIGH SCHOOL THE BREAK WITH THE SCHOOL IS EVEN MORE COMPLETE",12],["HANEY FELT A TWINGE OF ANNOYANCE WHEN HE HEARD THE NOW FAMILIAR LINE AGAIN",5],
+  ["HE WAS DOZING PERHAPS THE ONLY SLEEP HED GOTTEN",5],["IF AF DENOTES THE NET PROFIT FROM STAGE R AND AF THEN THE PRINCIPLE OF OPTIMALITY GIVES AF",1],["TOMMY HAD BEEN ASSIGNED TO THE PSYCHOPATHIC WARD",8],["HE ENDURED THE MINISTRATIONS OF THE DROMOZOA WITHOUT SCREAMS OR MOVEMENT",11],
+  ["IN THE MIDST OF IT ALL MR PODGER CAME OUT ON THE POD PORCH ALONE",9],["THEIR HAVING FAMILY TIES ON OUR PLANTATION THE ADJOINING ONE WOULD BE A STRONGER INDUCEMENT",12],["LIKE STRAWBERRIES IN DECEMBER PANSIES ARE FAR MORE EXCITING IN FEBRUARY THAN IN MAY",10],["MARK ARNOLD FOSTER WRITES PEOPLE ARE LEAVING WEST BERLIN BECAUSE THEY THINK IT IS DYING",9],
+  ["ONLY ONE BUILDER IN A THOUSAND IS EQUIPPED TO RECEIVE UNIT LOADS",10],["IT MIGHT BE ADDED THAT AS HE KEPT HIS WORD SO HE EXPECTED THAT OTHERS KEEP THEIRS",9],["FOR A FEW BRIEF MINUTES THEY HAD ALL BEEN PART OF ONE LITTLE DRAMA",9],["NOW WOULD YOU CARE TO HAVE US SAY THAT YOU WERE MISQUOTED IN REGARD TO IT",0],
+  ["THAT IS THERE IS IN THE TRUE SENSE ONLY A VISUAL SPACE",1],["AS SHE HAD DONE WITH MEANS SHE GAINED RAPIDLY AT FIRST BUT THEN BALDY BEGAN TO DRAW AWAY",12],["POET TWISTED AGAIN AND NICKS KNUCKLES SCRAPED ON THE AIR TANK RIPPING OFF THE SKIN",5],["THE THIN MAN STOPPED HIS PACING LONG ENOUGH TO GLANCE AT THE CLOCK",5],
+  ["ONCE OR TWICE MY FATHER ASKED ME IF I WASNT OVERDOING A BIT IN MY CHURCHGOING",4],["IF IT WAS INTENTIONAL IT WAS NOW ALSO UNNECESSARY",11],["EACH ONE OF THESE IS BY ITS NATURE A FOCAL POINT OR A POINT OF NATURAL CONGESTION",9],["WHAT DATA THERE ARE ON GROWTH INDICATE CONSIDERABLE VARIATION IN RATE",1],
+  ["IN PRACTICE THE PREFLIGHT LEVELING PROCESS TAKES PLACE WITH THE SYSTEM MOUNTED IN THE AIRFRAME",1],["BUT SHE SEEMED TO BE DOZING AND IN ANY CASE WED BEEN TALKING IN LOW TONES",8],["THE STRAIGHT LINE WOULD SYMBOLIZE ITS UNIQUENESS THE CIRCLE ITS UNIVERSALITY",2],["IT SEEMED TO ME THAT I WAS NOT ONLY UNLUCKY BUT QUITE STUPID AS WELL",5],
+  ["BLUE RIBBON FOR ONE DOZEN WHITE EGGS WAS TAKEN BY NYBERG",3],["NEW IDEAS FOR IMPROVING NUTRITION CAME WITH THE STUDY OF SOIL TREATMENT",12],["WILD KICKS NEVER ARE BUT I HOPED TO DIG UP A BETTER FRAME OF MIND",8],["IT NOW MEANS OMINOUS AS WHEN ONE SPEAKS OF A FUNNY SOUND IN THE MOTOR",0],
+  ["HE WOULD NOT RIDE THE EIGHT THIRTY LOCAL TO THE CITY EACH MORNING",8],["THEY WALKED FROM MIDNIGHT TO NOON NOON TO MIDNIGHT AND CAME TO THE BEAST SPRAWLED ON ITS SIDE",11],["THEY SWEATED OUT SOME KIND OF FORMAL EDUCATION",4],["IT WAS BARELY POSSIBLE THAT HIS BROTHER WAS RIGHT",6],
+  ["TOGETHER WITH HER MOTHER BOTH OF THEM TENSE WITH WORRY LEST THINGS SHOULD SOMEHOW GO WRONG",8],["HE WORKED AS A CLOTHIER IN LONDON BUT WAS GREATLY CONCERNED WITH RELIGION",4],["IS THE MATTER ONE FOR THE UNITED NATIONS OR SOME OTHER INTERNATIONAL BODY",7],["A FEW OBVIOUS TARGET AREAS OF GREAT IMPORTANCE MIGHT BE MENTIONED",1],
+  ["THE PRESENT COMPANY IS A COMBINATION OF SEVERAL SMALLER ONES THAT DATE BACK TO",3],["VENT PIPES ALSO ARE NECESSARY AS SHOWN IN FIGS AND BUT FILTERS ARE NOT",7],["HE WASNT LIKELY TO COME DOWN WITH HOT CHILLS AND PUZZLING STRIPED FEVER",11],["HE WAS DISAPPOINTED TO FIND A NERVOUS SCRAWNY WOMAN WITH A BIG HAT STANDING AT THE DOOR",8],
+  ["HENRY HID HIS ANNOYANCE ALTHOUGH BOTH HE AND WILLIAM WERE FURIOUS WITH THEIR YANKEE BROTHER",12],["THE APPEAL BOARD HOWEVER UNANIMOUSLY CONCURRED IN THE DEPARTMENTS RECOMMENDATION",7],["STILL PAINTING STILL A KIND OF MODERN IMPRESSIONIST BEAUTIFUL CANVASES OF MOUNTAINS AND FARMS",8],["ON BEING CRITICIZED FOR HIS ARBITRARY BEHAVIOR HE ANSWERED I HAVE TO MAKE DECISIONS",1],
+  ["THE MAN WHOM HE WOULD SELECT AS OUR LEADER FOR THIS GREAT TASK IS DE GAULLE",14],["THE CRUDE PICTURE OF THE DETERGENCY PROCESS THUS FAR DEVELOPED CAN BE REPRESENTED AS AF",1],["THE FIRST METROPOLITAN OPERA BROADCAST ON DEC WILL INTRODUCE HER AS LUCIA",14],["OPINION IS LESS INDIVIDUAL OR RUNS MORE INTO MASSES AND OFTEN RULES WITH A ROD OF IRON",2],
+  ["BUT THE OLD FELLOW A LIFELONG TEETOTALER REFUSED IT AND NO MORE WAS THOUGHT OF THE MATTER",0],["WE WERE GREATLY HELPED BY THERE BEING NO TRACES OF FORMER RESTORING",1],["I DECIDED TO SEE NO MORE OF THE CLERK UNTIL THE PROCESSING OF MY PAPERS WAS COMPLETED",13],["SOME DAY I TOLD EILEEN THAT GUY WILL KILL US BOTH",6],
+  ["NOW THEYVE GONE THEY DIDNT COME BACK AND THEY DIDNT ARREST THAT DRONK BOY",5],["THE PRESIDENT CANNOT PERSONALLY REMOVE THE SAFETY DEVICES FROM EVERY NUCLEAR TRIGGER",4],["AN ASSISTANT ATTORNEY GENERAL IS DIRECTED TO INVESTIGATE",3],["A SCHOOL OF THOUGHT HAS IT THAT THOSE ATTRIBUTES ARE EXACTLY WHAT THIS CONCERTO NEEDS",14],
+  ["LIVING IN A SHELTER THE RADIOACTIVITY OF FALLOUT DECAYS RAPIDLY AT FIRST",7],["IT IS THE ONLY METHOD LEFT FOR A MAN TO ESCAPE FROM A WOMANS WORLD",9],["IN A MOBILE SOCIETY CONGREGATIONAL HEALTH DEPENDS ON A CONSTANT PROCESS OF RECRUITMENT",12],["NEVERTHELESS IN ANOTHER WAY MODERN HISTORIANS STILL LABOR IN THE VINEYARD OF THE OXFORD SCHOOL",4],
+  ["MR REMARQUES CONCEPTION OF THIS NOVEL WAS SOUND AND PERHAPS EVEN NOBLE",14],["BUT AS THE ONE WHO CALLED YOU IS HOLY BE YOU ALSO HOLY IN ALL YOUR BEHAVIOR",2],["VERY FEW COMMITTEES EVER LOOKED PAST THE FIRST FEW PHOTOS",11],["THEY POINT OUT SIMPLY THAT IT IS THE LAW OF THE LAND",9],
+  ["ON THE ONE HAND HE DOES NOT WORK FOR A LARGE AGENCY BUT IS ALMOST ALWAYS SELF EMPLOYED",4],["DEAN THADDEUS SEYMOUR WEARING SKI CLOTHES WAS CROWNING A BEAUTEOUS DAMSEL QUEEN OF THE CARNIVAL",12],["COMMUNICATION MAY BE FACILITATED BY MEANS OF THE HIGH VISIBILITY WITHIN THE LARGER COMMUNITY",1],["NOW ALL THE BODIES ARE MISSING LIKE THEY GOT UP AND WALKED AWAY",11],
+  ["GOOD RADIO DRAMA HAS ITS OWN SPECIAL DEMANDS THAT BADLY NEED REINVIGORATION",14],["LISTEN I NEVER HAD A CHANCE TO KILL AN ANTELOPE",6],["I HAVE TODAY SIGNED AN EXECUTIVE ORDER ESTABLISHING A PEACE CORPS ON A TEMPORARY PILOT BASIS",7],["HE SEES A PARALLEL ALSO TO THE JEWISH DAY OF PREPARATION FOR THE SABBATH",2],
+  ["MARE IMBRIUM SEEMS TO BE AN EXCEPTION AND REMAINS COOLER THAN THE REGIONS WHICH SURROUND IT",1],["THATS NOT TAKING ONES COMMAND WITH A RESPONSIBLE ATTITUDE MATSON",5],["COME SPRING YOULL BE KICKING UP YOUR HEELS AND FEELING COLTISH AGAIN TOO GAL",13],["THEY ALSO CAUGHT ON A LITTLE BIT ON HOW TO SMILE A LOT WITHOUT YOUR LIPS TREMBLING",0],
+  ["PRESTIGE HOWEVER IS ONLY A MINOR PART OF THE PROBLEM",12],["SOMETIMES THOUGH THEY DID NOT SEEM QUITE HUMAN",0],["WHY WHAT A LOVELY VOICE YOU HAVE SAID ONE OF THE FEMALE VISITORS",11],["THE LETTER SCRAPED ON STONE HAD BEEN A MESSAGE HOME",11],
+  ["I TURN FINALLY TO SEVERAL THEOLOGICAL DEVELOPMENTS",2],["OUR PRESIDENTIAL CAMPAIGNS PROVIDE MUCH DEBATE AND ARGUMENT",4],["ITS LIKE BANGING A SHIN HE SAID HIS EYES LINGERED ON NICKS FACE THEN MOVED BACK TO ELAINE",5],["THE DATA HAVE NOT YET BEEN ANALYZED FOR DIURNAL VARIATIONS",1],
+  ["A MAN APPARENTLY FOREIGN TO THE VERY EXPERIENCE OF LOVE WITHOUT MERCY OR PITY",14],["MOREOVER HIS TESTIMONY AT TRIAL NEVER DEVELOPED ANY SUCH FACTS",7],["THE REST IS USED FOR HUMAN FOOD AND INDUSTRIAL PRODUCTS",12],["NBC HAD GATHERED A LOT OF HISTORICAL MATERIAL WHICH IT WAS EAGER TO SHARE",14],
+  ["HE HUNTS FOLKLORE FOR THE VERY FIELD AND STREAM REASONS THAT MANY PERSONS HUNT GAME",12],["CONEY ISLAND SAUCE FINELY CHOP SEVERAL ONIONS AND ADD ENOUGH CATSUP TO MOISTEN WELL",10],["IN THE PRAYER JESUS TAUGHT HIS DISCIPLES TO PRAY WE FIND THESE WORDS FORGIVE US OUR DEBTS",9],["SPEAKING INTO THE PHONE AGAIN AND RECOGNIZING THE CALLER I RESUMED MY EVERYDAY VOICE",0],
+  ["FRANCESCA WAS PLEASANT AND CHARMING BUT BLANCHE WAS SWEET",0],["HE DECLARED THE GOVERNMENT IS THINKING OF ASKING FOR FOREIGN TROOPS IF THE SITUATION WORSENS",3],["BUT JUMPING RIGHT UP HE STAGGERED IN NO PARTICULAR DIRECTION",13],["EVEN YET THERE WAS NO REALIZATION IN HIS EYES",13],
+  ["IF YOU RUN INTO EXCESS PLUG FOULING ON ONE TRUCK CHECK TO BE SURE THAT THE RIG HAS A THERMOSTAT",10],["THE MAJORITY OF SUCH CONTACTS ARE WITH PEOPLE OF SIMILAR SOCIAL AND ECONOMIC POSITION",12],["WHAT OUGHT TO BE WHAT IS HIS POTENTIAL ROLE AS A FORCE FOR CONSTRUCTIVE SOCIAL CHANGE",2],["ME I KNOW THE MIND OF AN OFFICER WORKS IN A STRANGE AND UNFATHOMABLE MANNER",11],
+  ["LEAVES WERE BURNING SOMEWHERE AND THE SMOKE SMELLED FOR ALL ITS AMMONIAC ACIDITY OF BEGINNINGS",6],["WHETHER THE CHECK IS CERTIFIED OR UNCERTIFIED THE TAX IS NOT PAID UNTIL THE CHECK IS PAID",7],["BONNIE WICK GENE ABBE SCOTCH MARY HAS GONE IN",10],["AROUND THE TABLE SIT PROTESTANT CATHOLIC AND JEW",2],
+  ["THE BASSIS ARE LEAVING SOON FOR THEIR NEW POST",3],["EXCEPT FOR THOSE MINUTES IN HER ROOM HE HAD LOST TOUCH WITH HER AS A REALITY",5],["HE REACHED DOWN AND CLOSED HIS FINGERS ON THE MANS UPPER ARM",6],["IT IS DIFFICULT TO MEASURE THE DIRECTION AND MAGNITUDE OF R DIRECTLY",1],
+  ["BUT IF YOU KNOW THE REAL THING YOU KNOW THAT WHAT YOU ARE HEARING IS ONLY A CLEVER IMITATION",10],["MANY WILL ADD THAT WE MAY FIND OUR ENJOYMENT HEIGHTENED BY OUR UNDERSTANDING",4],["PRICE OF THE COMPLETE WORK INCLUDING ALL NECESSARY BINDERS IS",1],["BUT OH HOW I DO SOMETIMES NEED JUST A MOMENT OF REST AND PEACE IN MYSELF",9],
+  ["THE DEPENDABLE WRIGHT ENGINE WAS NEVER STOPPED ON THESE TRIPS",12],["ONE OTHER PAPER DEALS WITH A PHONOLOGIC PROBLEM VOWEL HARMONY IN IGBO BY J CARNOCHAN",1],["THIS TIME SHE SUBMITTED AND IN A FEW DAYS WAS GOING GOOD",10],["THE WEST IS LEADERLESS ACCORDING TO THIS BOOK",14],
+  ["I DID NOT REST UNTIL I HAD TRACKED THE MYSTERY DOWN",0],["COFFEE BREAKS CAN BE A REAL HEADACHE IF NOT REGULATED",10],["IN TRADITION AND IN POETRY THE MARRIAGE BED IS A PLACE OF UNITY AND HARMONY",12],["MR AND MRS PHIL G ABELL ARE CHAIRMEN FOR THE SALEDO TRIP",3],
+  ["A MIST WAS WALKING ON THE WATER WHITE AS COTTON BUT WITH A BLENDING AND MERGING GRACE",6],["DEAR SIRS LET ME BEGIN BY CLEARING UP ANY POSSIBLE MISCONCEPTION IN YOUR MINDS WHEREVER YOU ARE",0],["BY SUCH INNOCENT ACTIONS ARE HUMAN TRAGEDIES SOMETIMES SET IN MOTION",0],["BUT WHO WILL ACT NOW AND IMMEDIATELY TO SAVE THE LIFE OF ALAN POPE",9],
+  ["CLASSIFIED ADS ARE ALSO CHOCKFULL OF MISRELATED CONSTRUCTIONS",0],["SHORT SHORTS ON THE CAMPUS CHICAGO AUG IT SEEMS COLLEGE ISNT WHAT IT SHOULD BE",9],["THE ONE THING THEY HAD IN COMMON WAS THEIR HATRED",13],["IT CONSISTS IN SAYING THAT WOULD BE SENDING THE GOAT TO LOOK AFTER THE CABBAGE",0],
+  ["FOR IT SEEMS THAT BARCO FANCYING HIMSELF A LADIES MAN AND WHY NOT AFTER SEVEN MARRIAGES",0],["IT HAS IDENTIFIED ITSELF WITH THE VERY TENSION AND TERROR IT ONCE DID SO MUCH TO ALLEVIATE",0],["IN SHORT SCIENTIFIC SAMPLING WAS INTRODUCED IN PLACE OF SUBJECTIVE SAMPLING",1],["UNIQUE CIRCUMSTANCES WOULD TEST US ALL HE DECIDED",6],
+  ["IF HE HAD INCOME OTHER THAN WAGES SUBJECT TO WITHHOLDING HE MAY BE REQUIRED TO FILE FORM",7],["THERE WAS ONE PARTICULAR WORD THAT TROUBLED HIS CONSCIENCE",4],["I ASKED TAKING A FINAL GULP OF MY DRINK AND HANDING HIM THE EMPTY GLASS",0],["OR SOMEONE HAD TAKEN IT DURING HER FIRST DAY AT HONOTASSA",5],
+  ["AT ONE SIDE OF THE STAGE A DANCER JUMPS EXCITEDLY",4],["THOUGH THAT DOES NOT MEAN THAT THERE MAY NOT BE SUCH RECORDS THERE",11],["WE FLEW IN RICKETY PLANES SO OVERLOADED THAT WE WONDERED WHY THEY DIDNT CRASH",12],["WHAT HAS IMPRESSED YOU MOST ON YOUR PRESENT VISIT",0],
+  ["THE BLAIR PURCHASE PRIZE FOR WATERCOLOR ART INSTITUTE OF CHICAGO",10],["WENT INTO THE FORWARD STATEROOM AND LOCKED THE DOOR BEHIND HIM",13],["DO YOU NOT THINK THESE MEN MIGHT CHOOSE THE BLACK FLAG HERE AND NOW",8],["THE SHADOWS OF THE TREES ENGULFED HER FORECLOSING EVERY POSSIBLE EXIT FROM THE GROVE",13],
+  ["THAT IS WHY IT IS IMPORTANT TO INVEST IN COMFORTABLE AIRY TYPES OF SHOES",9],["IN VYING WITH HIM MR DALBERT ALSO SEEMED TO BE OVERDRIVING HIS TONE",14],["POSSIBLY THE COCONUT CONTAINING DESSERT HAD BROUGHT UP BITTER PROBLEMS OF ADMINISTRATION",0],["YOU MAY BE BAPTIZED CONFIRMED REVERENT AND WORSHIPFUL",2],
+  ["YOU MUST BE A VERY LEARNED MAN SAYS VOLTAIRE TO ONE OF THE BANDITS",6],["HE STRESSED THE WILD BEAUTY OF THE MOUNTAINS AND THE JUNGLES",13],["FROM THE POINT OF VIEW OF WORD FORMATION REAL MIGHT BE EXPECTED TO HAVE TWO SYLLABLES",1],["A SAILBOAT MAY HAVE A BONE IN HER TEETH ONE MINUTE AND LIE BECALMED THE NEXT",14],
+  ["THE REMAINING TWELVE STATES HAVE VARYING FISCAL YEARS FOR THE STATE CITY AND LOCAL GOVERNMENTS",7],["HE ROLLED TOWARD HER AND TOOK HER IN HIS ARMS",11],["ANOTHER CAR WAS COMING A TINY DARK SHAPE ON A FAR HILL",13],["THE RICE WASNT DOSED WITH OPIUM INDEED IT HAD NO TASTE AT ALL NOT A GRAIN OF SALT",5],
+  ["ONE INFLUENTIAL FRENCH CRITIC REMARKED PITY FOR ARNOLPHE COMES WITH AGE",14],["THREE HUNDRED FIVE COPIES OF THE MANUAL OF MACROPATHOLOGICAL TECHNIQUES WERE DISTRIBUTED",7],["EXCEPT WHEN YOU PREPARE DO IT YOURSELF SHISH KEBOB OR A LOBSTER ROAST",10],["TWO MEN HE DID NOT RECOGNIZE WERE SIPPING COFFEE AND MUNCHING SWEET ROLLS",6],
+  ["ACTUAL MILEAGE ALLOWANCES ARE WELL ADMINISTERED AND NOT UNDULY EXPENSIVE FOR THE STATE",7],["THE STATEMENT OF THE SYSTEM IS A DIFFERENT MATTER",1],["BATTERY LIFE LIMITED THE USE OF THIS PILL TO ABOUT TO HOURS MAXIMUM",10],["THAT HAD HAPPENED ON THE DAY WHEN TWO OTHER UNUSUAL THINGS HAD OCCURRED",0],
+  ["THE HORSE SHIED AT THE DREADFUL THING AND FLARED ITS NOSTRILS",6],["THE APPLICATION OF CONDITIONS IN THE ALLOCATION OF AID FUNDS CANNOT OF COURSE BE MECHANICAL",7],["A DETAILED SEARCH OF OLD CORONERS REPORTS FAILS TO SUBSTANTIATE THIS IN THE SLIGHTEST",13],["IF NOTHING IS PRODUCED THERE IS NO OBLIGATION TO REPAY",7],
+  ["WHEN HE WANTED TO EMPHASIZE OR GET GREATER INTENSITY HE ADDED OR SUBTRACTED CLAY",6],["MORE THAN ONE PRESIDENT HAS FOUND THAT A LONG RANGE PLAN HELPS HIM TO ATTRACT MAJOR GIFTS",7],["INSTEAD OF KICKING FEET HELVAS NEURAL RESPONSES STARTED HER WHEELS",11],["THE LACES WERE BROKEN AT THE BOTTOM OF THE EYELETS BUT THERE WAS STILL A BOW KNOT AT THE TOP",13],
+  ["BY PERSONAL FACTORS I MEAN THOSE ROOTED IN PERSONALITY STRUCTURE",2],["AT EXACTLY HE FELT A FLUTTERING OBJECT BRUSH HIS FACE",12],["HOMEMADE OF MEAT BONES AND VEGETABLES IT IS RICH IN DISSOLVED MINERALS AND VITAMINS",12],["I MUST SAY HOWEVER THAT I PREFERRED THE ACTING THAT HAD SOMETHING OF A BITING EDGE TO IT",14],
+  ["IN LATE SUMMER MIGRATORY WORKERS LIVED FIVE AND SIX TO A ROOM IN THESE",5],["HIS MOVEMENTS AND SPEECH ARE PRECISE CLEAR AND QUICK",4],["IN SOME INSTANCES A SEVENTH QUESTION CAN BE ADDED",9],["AS HE CHEWED HIS GUM AND EXUDED WHEEZING BREATH MARTY SMELT THE REEK OF BAD WHISKEY",5],
+  ["FINALLY MERCER DID MANAGE TO FOLLOW BDIKKAT TO THE DOOR OF THE CABIN",11],["THEY WERE THE SUFFRAGETTES AND THEY WANTED TO VOTE",3],["SHE MADE GENERAL BURNSIDES HORSES BELLY DO SO FUNNY WHEN IT WAS UPSIDE DOWN",0],["THEY SAW IT BEFORE I DID EVEN WITH MY BINOCULARS",4],
+  ["ACCEPT THE SINLESS SON OF GOD JESUS CHRIST AS YOUR OWN PERSONAL SAVIOUR",2],["I MUST REMEMBER TO WARN THE GIRL NEXT TO YOU IN LARKSPUR",8],["IT IS ONE THAT MOST TRY TO AVOID AS LONG AS THEY CAN SEE AN ALTERNATIVE APPROACH TO THE PROBLEM",3],["ALL THAT IS NEEDED IS FOR ONE MAN TO FEEL SELF CONFIDENT ENOUGH TO TAKE THE LEAD",8],
+  ["THE OXIDATION POND HAS A SURFACE AREA OF ACRES AND A DEPTH OF AJ",1],["THE PERFORMANCE ALSO MARKED THE DEBUT OF A MOST PROMISING YOUNG CONDUCTOR SILVIO VARVISO",14],["THIS SAMPLE WAS CONTAINED IN A CYLINDRICAL CONTAINER SIMILAR TO THAT DESCRIBED ABOVE",1],["EVEN THOUGH THE BOY COULD NOT SEE THEM HE KNEW THEY WERE CLOUDED BY DISTANCE",8],
+  ["BRIDGETS TESTIMONY WAS IN DIRECT CONTRADICTION",12],["THE LAW ABIDING CITIZENS OF PETRIE HAD GATHERED INSIDE KASTERS STORE HALFWAY DOWN THE STREET",13],["NOW IT BECAME INCREASINGLY APPARENT THAT THERE WERE TO BE NO DOGS IN THE PICTURE",0],["JOURNALISM SUPPLIES US WITH AN ENDLESS RUN OF SUCH SLIPS",0],
+  ["ID SIMPLY LIKE TO KNOW IF IT IS AS GOOD AS YOU KIND PEOPLE SEEM TO THINK HE SAID",6],["THEY NOW LEAD LOUISVILLE BY A FULL GAME ON TOP OF THE AMERICAN ASSOCIATION PACK",3],["ALTHOUGH OPEN TO THE GENERAL PUBLIC IT IS NOT OVERCROWDED",4],["NOT THAT THERES MUCH USE IN LOCKING UP THE SMOKEHOUSE AND THE STOREHOUSE NOW",5],
+  ["HE SAW ONLY DIMLY MOVING FIGURES BUT WHEN HE SLASHED THEM THEY YELLED AND FLED",6],["THE GLEE CLUB IS OPEN TO ALL STUDENTS AND FACULTY WITH NO AUDITIONS NECESSARY FOR MEMBERSHIP",7],["IT IS MORE LIKELY THE SONS AND DAUGHTERS OF THAT COMPANY",14],["THESE SYSTEMS ARE MORE EXPENSIVE THAN YEAR ROUND FORCED AIR SYSTEMS",10],
+  ["IT TURNED OUT TO BE A LIFE OF MARTIN LUTHER OF ALL THINGS",0],["EDITORS NOTE SIR ROBERT WATSON WATT WROTE ON PAGE OF SR RESEARCH FOR MARCH",9],["ONE TECHNICAL QUESTION OF SCHOOL ORGANIZATION COMES TO MIND HERE",10],["YOUVE BEEN HIDING THINGS FROM ME AND NOGOL EVERY JUMP WEVE MADE WITH YOU",11],
+  ["IF THE CASE IS THUS DETERMINED BY US TO BE DOMESTIC THE COURT HAS NO JURISDICTION",9],["SHE IS A CLOSED BOOK A PICTURE I KEEP ON MY BUREAU BUT NEVER LOOK AT",8],["THE GRIEVING HERO AND HER FATHER LEONATO FOLLOWED BY THE FRIAR LEFT THE STAGE",14],["THE SUDDEN SOLITUDE HAD LOST ITS MOMENTARY CHARM AND BECOME OPPRESSIVE",11],
+  ["I CONSIDER IT TO BE MY JOB TO EXPOSE THE PUBLIC TO WHAT IS BEING WRITTEN TODAY",4],["THE SOAKING WILL PUT LIFE BACK IN THE WAGON TOO",13],["IT SHOULD PROVIDE NOT LESS THAN CUBIC FEET PER MINUTE OF AIR PER PERSON",7],["HE CAN SACRIFICE HIMSELF FOR TOMORROW AND HE CAN SACRIFICE TOMORROW FOR HIMSELF",4],
+  ["THE KILLING WAS ALREADY FORGOTTEN IN THAT CLEAR MIND OF HIS",8],["I LOOKED OVER THEIR FACES AND FELT A TWINGE THEY ALL LOOKED SO MUCH MORE KNOWING THAN I",6],["HE PASSED THE RECEPTIONIST IN THE OUTER OFFICE MUTTERING IVE GOT TO GO OUT FOR A LITTLE WHILE",5],["GUESS YOU WANT TO SEE THE BODY HAVE HER UP THE STREET IN DOC ABELS OFFICE",5],
+  ["THEY LOOK AS IF THEY HAD BEEN SCULPTURED WITH AN UNSHARPENED CHISEL",4],["I DONT KNOW WHAT YOURE UP TO BUT WHEN BRENNER YOU CAN FORGET ABOUT BRENNER TOO CURT SAID",13],["HER EYES BECAME BRIGHT AS SHE TALKED ABOUT HER FATHER AND MOTHER AUNTS AND UNCLES COUSINS",5],["FEW RECORDS ARE AVAILABLE CONCERNING THE SUBJECT PRIOR TO",7],
+  ["THE RESULTS ARE TOO VARIED TO ALLOW GENERALIZATION",1],["THIS WAS SOMETHING ON WHICH K HIMSELF SEEMED TO HAVE SOME DOUBTS",9],["IT IS NOT DIFFICULT TO ANTICIPATE CIRCUMSTANCES IN WHICH NEGATIVE TENSIONS WILL CUMULATE",4],["THE DANGER LAY IN THE AMERICAN DELUSION THAT NUCLEAR DETERRENCE WAS ENOUGH",9],
+  ["SEE SOURCE OF DATA BELOW FOR PER CAPITA INCOME DATA TO BE USED IN THIS STEP",7],["HE LEFT THE REST OF HIS THINGS AND RETURNED TO THE LOBBY",5],["THIS IN BRIEF WAS THE HISTORICAL BACKGROUND OUT OF WHICH ZEN EMERGED",2],["HE SCORED A FOR THE EMBEDDED BALL A WITH THE PROVISIONAL ONE",3],
+  ["AS A RESULT LIFE HAD BECOME A KIND OF CONTINUOUS MAKE READY",0],["PERHAPS THEY WOULD ARGUE THAT MORALITY CONSISTED JUST OF THAT ABILITY TO SEE A CHOICE",8],["WE WANT TO STIMULATE IDEAS FROM THE BOTTOM TO THE TOP OF THE DEPARTMENT",7],["THEY DONT LIKE IT IF I DO ANYTHING AWAY FROM HOME",12],
+  ["IT IS WORSE FOR A NATION TO GIVE IN TO EVIL THAN TO RUN THE RISK OF ANNIHILATION",2],["AND TODAYS TRADE UNIONS ANNOUNCE PRETTY MUCH THE SAME VIEW",1],["NO LONGER DID THE SOVEREIGN LOOK TO THE LAW OF NATIONS TO DETERMINE WHAT HE OUGHT TO DO",1],["THEY WENT AS RIGID AS BLACK STATUARY SIX FIGURES LEAN AND TALL AND ANGULAR WENT STILL",4],
+  ["HE SHOWED US HOW HE DEALT WITH HIS ENEMIES HE EXECUTED THEM BEFORE TV CAMERAS",2],["THE PANELS WILL STAY UP UNTIL THEY ARE REPLACED NEXT SUMMER",14],["CONSONANTAL SYSTEMS ARE NOT MERELY LARGER THEY ARE MULTIDIMENSIONAL",1],["SHE WAS AMAZINGLY LIGHT AND SO RELAXED IN HIS ARMS THAT HE WASNT EVEN SURE SHE WAS CONSCIOUS",13],
+  ["DRUNK ON SAKE HE MUST HAVE WANDERED OFF FROM HIS BIVOUAC",13],["HE DOES NOT REALLY APPROVE OF LEVITY AND LAUGHTER BUT SEX IS THE DEADLY SIN",4],["WAS HE GOING TO BE SADDLED FROM NOW ON WITH A CREEP FOR A BAR BUDDY",5],["DURING EARLY CHILDHOOD BOYS TEASE AND BULLY ON THE AVERAGE MORE THAN GIRLS",1],
+  ["AND THE TONE SHE COMMANDS IS ALWAYS BEAUTIFUL IN SOUND",14],["THE ALGOL SERVES AS A RECORD OF CAMPUS ORGANIZATIONS AND STUDENT ACTIVITIES DURING THE YEAR",7],["YOURE THE ONLY MAN THE NIGHT RIDERS WILL FOLLOW",13],["RHODE ISLAND IS GOING TO EXAMINE ITS SUNDAY SALES LAW WITH POSSIBLE REVISIONS IN MIND",3],
+  ["THE GUERRILLAS WERE SWARMING FROM THEIR BIVOUAC AT THE WEST END OF THE ENCLOSURE",13],["RUDY VALLEE WHO SHARES STAR BILLING WITH MR MORSE MAKES ONLY TWO APPEARANCES",14],["THE GOVERNMENT ALSO IS AIDING FARMERS INCOME PROSPECTS",3],["ONLY THE TOP OF THE HEAD WITH A SPOT BARE AND WHITE AS A CLAMSHELL REMAINED VISIBLE",6],
+  ["BOTH LOVED THE OUT OF DOORS INCLUDING MOUNTAIN CLIMBING AND HORSEBACK RIDING",12],["EILEEN DECLARED SHE COULDNT LIFT HER HEAD FROM THE PILLOW",6],["IT MUST HAVE GOT THERE WHEN YOU FELL AGAINST ME",13],["SHE KISSED HIM PASSIONATELY UPON HIS REAPPEARANCE",0],
+  ["IT WAS THE KIND OF FRAME THAT IS ONLY PUT AROUND THE PHOTOGRAPH OF A DEAD PERSON",6],["UNDOUBTEDLY THERE WAS A GOOD DEAL OF GAMBLING IN BOTH",6],["FINDING SOURCES FOR THESE HIGH QUALITY FOODS IS A PROBLEM",12],["THATS ALL I KNOW ABOUT IT AND THATS ALL I CARE",5],
+  ["ON THE FORWARD SLOPE IN FRONT OF HIS OWN POST STRETCHED TWO ROWS OF BARBED WIRE",6],["TEARS BURNED BEHIND HIS EYES AS HE PRAYED AND MEDITATED TONIGHT",6],["I THINK YOU COULD HAVE HEARD HIM A MILE AWAY AND HE WAS BURSTING AT EVERY SEAM WITH IMPORTANCE",6],["IT SURE AS HELL DOESNT LOOK LIKE ANY DOMINANT INTELLIGENT SPECIES TO ME",11],
+  ["TABLE SHOWS OPERATING COST DATA OF STATE VEHICLES SELECTED AT RANDOM",7],["THEY WERE OPERATING IN OF THE MAJOR AREAS OF CHRONIC LABOR SURPLUS AND IN OF THE MINOR AREAS",1],["GRIGORSS COMES TO ROME AND BECOMES A GREAT AND BELOVED POPE",4],["MIKE WAS OF LEGAL AGE AND PRESUMED ABLE TO DEFEND HIMSELF IN THE CLINCHES",11],
+  ["ISSUING BONDS FOR PLANT CONSTRUCTION HAS BROUGHT NEW INDUSTRIES TO CERTAIN REGIONS",9],["HE TOLD KEN TO HIS FACE THAT HE DOESNT HAVE WHAT IT TAKES TO GET A WOMAN",8],["WHY I CAN GET THEM KNOCKED OFF FOR HALF THAT MUCH",12],["HE IS A GRADUATE OF UCLA AND PERKINS SCHOOL OF THEOLOGY AJ",3],
+  ["ABOVE ALL DONT SET UP EXTRAVAGANT FRINGE BENEFITS JUST TO BUY EMPLOYEE GOOD WILL",10],["CHIEF MOORE SAID IF I DONT SEE YOU WHEN I RETURN SEE YOU FOR CERTAIN AT MY ROAD BLOCK INSPECTOR",5],["BUT BY NOW OBANIONS POLITICAL PULL WAS BEGINNING TO BE EFFECTIVE",12],["INSTEAD OF MOTELS FOR THE BOATMAN THERE ARE MARINAS",10],
+  ["OUR CHIEF AIM BECOMES THAT OF FINDING FAVOR IN NEUTRALIST EYES",9],["BUT EVEN SO HE HAD A GOOD YEAR IN AND WONT DO TOO MUCH BETTER",9],["THERED BEEN A PRETTY BAD INCIDENT BACK AT THE MARINE BASE",6],["SUCH WAS MY STATE OF MIND THAT I DID NOT QUESTION THE POSSIBILITY OF THIS",13],
+  ["IRVING GRANVILLE AND NELSON RECTOR WHO TRAVEL WIDELY CALLING ON BUSINESS FIRMS",2],["THEN AT LEAST HE WOULD HAVE A PLACE TO HANG HIS TOOLS AND SOMETHING TO WORK ON",0],["SCREWED STEWED AND TATTOOED AS KRIM MIGHT SAY AFTER READING A BOOK ABOUT SAILORS",4],["FRANCESCA AND HERBERT WERE AMONG THE FEW PEOPLE WE KNEW IN CATATONIA",0],
+  ["INSTEAD OF BEING DEPRESSED BY THIS NEWS MR CROMBIE WAS ACTUALLY RELIEVED",0],["THE UNIT OF FORM IS DETERMINED SUBJECTIVELY THE HEART BY THE WAY OF THE BREATH TO THE LINE",4],["MAUDE HAD THE OPPORTUNITY TO TAKE THE BOTTLE OF OPIUM FROM SARAHS ROOM",5],["THERE IS A RAPIDLY GROWING DEMAND FOR THIS MATERIAL PRIMARILY FROM THE MILITARY",7],
+  ["THEIR VANGUARD ALBUM MADRIGAL MASTERPIECES BG",14],["I HAVE A HUNCH MARV BREEDING MIGHT MOVE UP A NOTCH",9],["HIS NERVES WERE GETTING A LITTLE RAGGED AND HIS IMPATIENCE PUT AN EDGE IN HIS VOICE",5],["SHE HESITATED AS THOUGH HUNTING OVER WORDS AND WAYS OF PUTTING THEM",8],
+  ["MERELY HAVING A MENTAL IMAGE OF SOME SORT IS NOT THE ALL IMPORTANT CONSIDERATION",4],["BECAUSE THATS WHAT YOURE DOING WRECKING IT WRECKING IT WRECKING IT",5],["AMONG INFANTS THE PATTERNS OF EMOTIONAL RESPONSES ARE SIMILAR",1],["AFTER SUPPER DOC CALLED WHITEY GRESHAM WHO WAS NOW A LIEUTENANT AND HAD A FAMILY",8],
+  ["LATER ON THE CHILDREN TOLD HER FURTHER ABOUT SOMERSAULTING",0],["THE PARTITION OF INDIA HAS HARDLY IMPROVED RELATIONS BETWEEN HINDUS AND MUSLIMS",2],["THE OTHER REMARKED IN A HAPPY LAUGHTER THATS A FUNNY OLD HORSE",0],["THE PILOT RADIOED EL PASO INTERNATIONAL AIRPORT WITH JUST THAT MESSAGE",3],
+  ["IM SURE SHED TURN IT OVER TO YOU IF YOUD RATHER",8],["THIS STAIN OFTEN DISRUPTS THE NORMAL CELL ACTIVITY OR ELSE COLORS ONLY THE OUTSIDE",10],["SHE KNOWS THE POWER OF THE SEX URGE AND HOW TO USE IT TO MANIPULATE HER HUSBAND",12],["CEILINGS WERE JUDGED BY COMPARISON WITH KNOWN MOUNTAIN HEIGHTS AND CLOUD POSITIONS",12],
+  ["SOMEHOW OUR CONTEMPORARY MOLOCH MUST BE INDUCED TO SEE REASON",9],["PART OF THE RITUAL OF SEX IS THE USE OF MARIJUANA",4],["DO YOU GET THE PICTURE OF THE KIND OF FELLOW HE WAS",6],["HE SUGGESTS THAT GORE COURT EMBODIES ALL THE GLORIES OF TUDOR SPLENDOR",14],
+  ["IN ADDITION THERE WERE SMALL PAPILLARY ADENOMAS IN THE RIGHT KIDNEY",1],["BEFORE THE RESIN HAS HARDENED SCREW A ONE INCH MAHOGANY KEEL STRIP ALONG THE CENTERLINE",10],["AFTER ALL TOO MUCH DOES NOT HAPPEN TOO SUDDENLY NOR DOES VERY LITTLE TAKE LONG",1],["THE WEST MAY OR NOT REMAIN SATISFIED WITH THE KIND OF NEUTRALISM THAT U THANT REPRESENTS",9],
+  ["THE FEMALE PARASITE SPENDS MUCH TIME IN HER EFFORTS TO FIND A NEST OF HER HOST",1],["IT WAS REPORTED TO WELCHS OFFICE THAT A THIEF IN THE CITY JAIL HAD ATTEMPTED SUICIDE",0],["VERY FEW FRIED FOODS ARE USED AND THE USE OF SALT AND PEPPER IS DISCOURAGED",12],["IN THE PRESIDENTIAL ELECTION THEY HAD THAT RIGHT AND MANY OF THEM DID VOTE FOR THE FIRST TIME",3],
+  ["THE MORTAR WAS EQUIPPED WITH DUMMY SHELLS AND THE RECOILLESS RIFLE WAS DEACTIVATED",9],["HE LOOKED UP AT ME PUZZLED AND HE SWAYED HIS HEAD FROM SIDE TO SIDE",8],["HE KILLED ACCURATELY FREELY AND DISPASSIONATELY",12],["YOU CANNOT GO TO HEAVEN UNLESS YOU ARE BORN AGAIN",2],
+  ["I AM HIGHLY PRIVILEGED TODAY TO COMMEMORATE THE BRILLIANT CAREER OF THIS PARLIAMENTARY GIANT",7],["NEARLY ALL THE TURNPIKES SHOW GAINS IN NET REVENUES DURING THE PERIOD",3],["LUBLIN WAS THE SEED OF ACTION FOR THE FINAL SOLUTION OF THE JEWISH PROBLEM",6],["BUT THERE WAS A LOOK ABOUT HER MOUTH AS THOUGH SHE WERE TASTING LEMONS",6],
+  ["HE WOULD TELL HER NOT TO PRY INTO GROWNUPS AFFAIRS AS THOUGH SHE WERE A LITTLE KID LIKE ELENA",13],["A KIND OF DOUBLE STANDARD EXISTS HERE FOR JEWISH BOYS AND GIRLS AS IT DOES IN THE REALM OF SEX",12],["ITS JUST A BAT SAID MY WIFE REASSURINGLY AND I SIGHED WITH RELIEF",14],["HEAT OF CONDENSATION WORK FUNCTION PLUS KINETIC ENERGY OF THE ELECTRONS IMPINGING ON THE ANODE",1],
+  ["YOU LOOK LIKE THAT PICTURE I HAVE AT THE OFFICE MR JACK HAD STARTED",6],["IN THE CASUAL FIELD STRAWS FEATURE WEDGE HEELS OF CORK OR CARVED WOOD IN A VARIETY OF STYLES",9],["ASIDE FROM THE RUGER CARBINE A NUMBER OF HUNTING RIFLES HAVE BEEN INTRODUCED FOR THE FIRST TIME",10],["HER FACE WAS FROZEN INTO THE MASK OF A MANNEQUIN HER BODY ABSOLUTELY MOTIONLESS",5],
+  ["NIGHTCLUBS THE COOCH TERPERS HE COME WITH ME TO THE CASBAH",9],["FREEPORT HOUSES SOCIAL SCIENCE PURE SCIENCE AND LANGUAGE",3],["WHAT IT DOES IMPROVES GROWTH RATE AND FEED EFFICIENCY OF FATTENING BEEF ANIMALS",10],["ONE DAY THE CHILDREN HAD WANTED TO GET UP ONTO GENERAL BURNSIDES HORSE",0],
+  ["HORSELY AN AGENT ON THE EAST END WORE THE HAT TRYING TO LOOK LIKE A TOURIST",13],["COMPARED TO THE BIG ESTABLISHED MAGAZINES MY FIRST EFFORTS SEEMED FEEBLE INDEED",2],["HE TRIED TO TELL THE LADY DA BUT THE WORDS WERENT QUITE STRAIGHT",11],["EVEN THE DISTILLED SPIRITS INSTITUTE HAS LONG HAD A SPECIFIC PROHIBITION",9],
+  ["NATURALLY HE COUCHED THE PROVISION IN OBSCURE LANGUAGE",11],["RACHEL CAME CLOSE TO THE BED BENT AS IF SHE WOULD KISS HIM THEN MOVED AWAY",6],["ONE STRUCK THE MUZZLE OF ONE OF THE RIFLES THAT PROJECTED FROM THE SHOULDER PACK",13],["LET ME SET THE RECORD THIS TIME AND LET ME GET BACK OK SO THE GERMAN WILL GIVE ME THE EXCLUSIVE",13],
+  ["THEYD RATHER HAVE THINGS RUGGED WITH ONLY MODERATE PROTECTION ON THE COLDEST DAYS",10],["THEN THE YOUNG MAN IN THE BROWN SPORTS JACKET SPOKE AND IT WAS NO DIFFERENT",8],["AT NEW ORLEANS MILE SQUARE LAKE PONTCHARTRAIN HAS FEW SQUALLS AND YEAR LONG BOATING",14],["OUT OF CHOLESTEROL COME KEYSS MAIN MESSAGES SO FAR AMERICANS EAT TOO MUCH",14],
+  ["IF THE SECOND ITEM IN THE OPERAND IS OMITTED THE SYMBOLIC NAME IOCSIXG WILL BE ASSIGNED",1],["BROOKLYN COLLEGE IS DISTINCTIVE FOR NOT HAVING AN OFFICIAL DRINKING PLACE",12],["BEN AND STINKY WENT HOME AN HOUR AGO AND PEOPLE STARTED GOING TO BED",11],["IT SEEMED CLEAN NOW BUT ALEC DECIDED AGAINST A BATH",5],
+  ["ONE IS AN IMPERIAL LONDON STOCKBROKER CALLED JEREBOHM",14],["REVEREND JASON LOOKING WORRIED HURRIED TOWARD US",13],["THEY WERE SITTING ON THEIR HEELS RIDER FASHION OVER BY THE STILL EMPTY CALF WAGON",13],["THOUGH IT MIGHT BE THAT WE WOULD HAVE MUCH TO GIVE YOU YOU HAVE NOTHING TO GIVE US",11],
+  ["WE WAITED TILL HE HAD FINISHED LAUGHING AND THAT GAVE US A FEW MOMENTS FOR TAKING STOCK OF HIM",5],["A BILLION PEAS WOULD FILL A SMALL HOUSE FROM CELLAR TO ATTIC",2],["THEIR SINGING WAS WELL BALANCED CLEAR AND WITHIN OBVIOUS LIMITATIONS EXTREMELY PLEASING",14],["OTHERS ADMITTED HE WAS ABSOLUTELY CORRECT HE NEVER SLEPT",11],
+  ["YOU LOVE THIS VILLAGE AND THESE STINKING BROWN PEOPLE BECAUSE THEYRE GODS CREATURES TOO",13],["THE MOST FAMOUS BALLET OF THAT TIME WAS CALLED BALLET COMIQUE DE LA REINE",7],["IT WAS DEMONSTRATED MANY CRITICS WOULD LATER POINT OUT IN THE LENGTH OF HIS NOVELS",4],["THIS YEAR SEVERAL ENTRIES FROM CANADA WERE ENTERED WHICH MADE THE JUNIOR CLASS INTERNATIONAL",10],
+  ["ONE SHOULDNT MIX COMMERCIAL AFFAIRS WITH PATRIARCHY BUT IN THIS CASE I HAVE NO CHOICE",8],["YOU KNOW BANG JENSEN CHARACTERIZED YOUR COMMITTEE AS HAVING PREJUDGED HIS CASE",4],["THE MAN PUT HIS AT THE HEAD OF CAPT BYRON D RICKARDS",3],["OF THEM WORRIED ABOUT PAST HAPPENINGS WHICH WERE COMPLETELY BEYOND THEIR CONTROL",2],
+  ["I COULD HARDLY BELIEVE SUCH GOOD LUCK WAS MINE",8],["OPERATIONAL INTELLIGENCE PRESUMABLY WILL BE AVAILABLE FROM OUR NATIONAL INTELLIGENCE AGENCIES",1],["THIS PROBLEM CAN FORCE A CHANGE IN MARKETING APPROACH IN MANY KINDS OF BUSINESSES",10],["IN DUE TIME SANDBURG WAS A WALKING THESAURUS OF AMERICAN FOLK MUSIC",4],
+  ["THEN REMOVE IT AND GIVE THE WHOLE BOTTOM A COAT OF RESIN",10],["THOSE SOULS LIKE TO WANDER OFF AND MUST BE CALLED BACK",12],["THEN HE BACKED OUT AND SWUNG AROUND TO THE FRONT DRIVE",5],["THE SINGLE ANIMAL OR A SMALL BUNCH WERE REFERRED TO AS STRAYS",12],
+  ["IT GETS SO FRUSTRATING BUT THEN AGAIN I DONT KNOW WHAT I COULD DO IF I GAVE UP RACING",3],["ALL THE OTHER FORCE VECTORS ARE DERIVED FROM THESE",1],["THE ACADEMIC DEAN SHOULD TAKE A DIRECT LONG TERM INTEREST IN FACULTY DEVELOPMENT",7],["IF WE BREAK THE MINISTER TO OUR BIT WE ARE BUYING BACK OUR OWN SINS",9],
+  ["IN ANY EVENT IT IS A FORM OF BORROWING WHICH COULD BE AND SHOULD BE RENDERED UNNECESSARY",7],["BRUISES AND BLACK EYES WERE RELIEVED BY APPLICATION OF RAW BEEFSTEAK",12],["WHAT EFFORT DO YOU MAKE TO ASSESS RESULTS OF YOUR PROGRAM",10],["USE THREE STRIPS OF CLAY TO HOLD IN PLACE SEE FIG PAGE",10],
+  ["BUT THE SUPREME COURT WOULDNT EVEN HEAR MY CASE",0],["ANOTHER BODY LENGTH OR ALL THE REST OF HIS NIGHTED LIFE",6],["IT IS AT THIS POINT IN HIS LIFE THAT THE MATURE PROKOFIEFF EMERGES",10],["A DUST SETTLING PERIOD OF DECADENCE AND DECLINE",9],
+  ["ALREADY AT LEAST ONE HOTEL HAS BEEN QUIETLY TAKING RESERVATIONS ON A NONRACIAL BASIS",9],["HE WAS ALL OF THESE ROLLED INTO ONE STURDY FIGURE",9],["WHOSOEVER VIOLATES OUR ROOFTREE THE LEGEND STATES CAN EXPECT MAXIMAL SORROW",0],["THE QUESTION WAS TOO WIDE FOR THE SPARSE ENGLISH LANGUAGE",11],
+  ["REMEMBER HOW BY A SERIES OF BOOKING ABSURDITIES CHICAGO MISSED SEEING THE BOLSHOI BALLET",14],["YET THERE IS THE CLASSIC CASE OF THE GERSHWINS THE MAN I LOVE",14],["THESE ARE NOT GOVERNMENTALLY SUBSIDIZED ORGANIZATIONS",10],["CARTOONS WERE DRAWN FULL SIZE AFTER SKETCHES HAD BEEN MADE TO SATISFY ALL THE AUTHORITIES",1],
+  ["AND EARLY SPRING SEIZED THE WHIP AND SAID IF YOU MUST FLOG SOMEONE LET IT BE HER YOUR DAUGHTER",8],["THE ROMANTICS WERE THE IMMEDIATE INHERITORS OF THIS TREMENDOUS CHANGE",4],["CLIMBING THE STEPS STEADILY THEY REACHED THE TOP AND HEADED FOR THE DOOR",13],["DETERMINE THE AVERAGE PER CAPITA INCOME FOR THE U S BASED ON THE LAST THREE YEARS",7],
+  ["PRIME MINISTER MOVES FAST ALAS SO IT ALMOST PROVED FOR US TOO",12],["BUT IT COULD ALSO BE LOOKED AT FROM THE OTHER END OF THE SPECTRUM",4],["BUT IT WAS EVEN FUNNIER AFTER THEY HAD BEEN TOLD",0],["RHODE ISLAND LAW SPECIFIES THAT ALL REAL ESTATE IS TAXABLE IN THE TOWN IN WHICH IT IS SITUATED",7],
+  ["BREEDING TO ADAIR TO GENTILE SETTING UP TUTTLES FOOT HOMER OVER THE WALL IN LEFT CENTER",3],["WE CAN MASS OUR FLEET AGAINST THE TRUJILLOS BUT NOT AGAINST THE CASTROS",9],["MR BATES SHOWS US HOW THIS MUTUAL EDUCATION SPREADS ITS INEVITABLE HAVOC",14],["AND THE MAJOR PART OF MY MISSION TO YOUR NEST IS TO MAKE A TREATY BETWEEN YOUR RACE AND MINE",11],
+  ["IF I HAFTA DO THIS TO STAY ALIVE BY GOD ILL DO IT",6],["THE TAOISTS WERE QUIETIST MYSTICS WHO SAW AN UNCHANGING UNITY THE TAO UNDERLYING ALL PHENOMENA",2],["ALREADY FIRMLY IMPLANTED INTERNALLY IT IS A GROWING FACTOR IN EXTERNAL MATTERS",4],["AND THEN WITH THIS GOD ON OUR SIDE WE CAN FACE THE WHOLE WORLD WITHOUT FEAR",2],
+  ["BE CAREFUL THAT YOU KEEP ADEQUATE COVERAGE BUT LOOK FOR PLACES TO SAVE MONEY",10],["THE JOKES AND ARGUMENTS GROW LOUDER UNTIL THE POLICE RETURN",1],["HOW THEN DO THE KINESTHETIC SENSATIONS FUNCTION IN ALL THIS",1],["THESE MEMBERS WOULD THEN UNTHAW THE REST OF THE PERSONNEL",11],
+  ["THE SOUNDS MADE BY THESE ORGANS WERE THEREFORE DISSIMILAR",11],["GIFFEN HAD ALREADY URGED HIM TO JOURNEY SOUTH IF ONLY FOR A FEW DAYS TO CLEAR UP MATTERS",12],["MIRIAM NOEL WRIGHT SAID HERE I AM AT MY OWN HOME LOCKED OUT SO I MUST STAND IN THE ROAD",4],["NO MATTER WHO THE CANDIDATE FOR MARRIAGE SELECTED BY THE GAPT THE GAPT",11],
+  ["WAS SHE ON FRIENDLY TERMS WITH OTHER MEMBERS OF HER FAMILY",5],["THATS THE COLONEL HE SAID BUT I CANT SEE THE DOGS",12],["HE WAS SUPPOSED TO BE IN COURT THIS AFTERNOON AT CITY HALL",8],["THIS IS AN INHERENT PART OF ADJUSTING FISCAL CALENDARS",7],
+  ["A HELPFUL LEAFLET MAY BE ENCLOSED IN THE LETTER",2],["PRESERVATION OF THE WETLANDS WHERE BIRDS BREED",3],["WHAT HE REALLY WANTS IS TO FIND A SACRED CAUSE TO WHICH HE CAN HONESTLY DEVOTE HIMSELF",4],["NOW DONT TELL ME WHAT A GOOD BALL PLAYER YOU ARE",8],
+  ["PROPRIETY WAS SYNONYMOUS WITH RITUAL OBSERVANCE THE MARK OF A TRUE GENTLEMAN",2],["BRIDGET WAS BORN IN IRELAND ONE OF FOURTEEN CHILDREN",12],["NOT ONLY IN POPULAR THOUGHT BUT IN THAT OF THE HIGHLY EDUCATED AS WELL WAS THIS TRUE",2],["SIGMEN LOVE YOU TOO MY GUARDIAN SAID HAL CHOKING",11],
+  ["EVERYBODY LEFT AND I STAYED IN THE POOL THEN LOU CAME BACK ALONE AND LEAPED INTO THE POOL TOO",13],["IF THERE ARE ANY MAJOR RESTRICTIONS THEY USUALLY CAN BE OBTAINED IN PRINTED FORM",10],["SHEA AND HIS WIFE NORI MAKE THEIR HOME AT SANDS POINT L I",3],["KARL PROVIDES EXPERIENCE FOR STUDENTS WHO WISH TO PURSUE CAREERS IN RADIO",7],
+  ["ANACONDA AT BIRTH THIS SPECIES VARIES CONSIDERABLY IN SIZE",1],["HE AND DEAN JOHN W SCHWADA OF THE BUSINESS SCHOOL OUTLINED THE PROJECT AT A RECENT CONFERENCE",9],["TILLIE WAS A FINE MIDWIFE AND COULD GET HERE QUICK HE SUGGESTED",8],["AFTER A LONG TIME THE HALF MAN DRAGGED HIMSELF OVER TO THE GROUP WITH HIS POWERFUL ARMS",11],
+  ["SOMETIME EARLIER THE WEATHER HAD TURNED COLD AND IT WAS SNOWING",8],["THAT HIS BABY SISTER COULD SPIT UP THROUGH HER NOSE WHEN SHE FELT LIKE IT",8],["BY THIS TIME LARGE NUMBERS OF THE AUDIENCE HAD LEFT THE HALL",1],["MORGAN IMMEDIATELY DISPOSED HIS TROOPS FOR ACTION AND FOUND HE HAD NOT LONG TO WAIT",4],
+  ["EVERY MEMBER OF THE FAMILY MUST HAVE A VITAL PLACE IN ITS LIFE",2],["I REACHED INTO THE POCKET OF MY SKIRT FINGERED TEN PRUTA AND DROPPED THE COIN",8],["BOTTOMS OF THE FLOORBOARDS ARE ALSO PAINTED AND THE FLOORING IS THEN SCREWED IN PLACE",10],["THREE WERE DOUBLES BROOKS ROBINSON GETTING A PAIR AND MARV BREEDING ONE",3],
+  ["THE VICTORY WAS THE FIRST OF THE SEASON FOR THE BILLIKENS AFTER NINE DEFEATS AND A TIE",3],["THE ANGELS IN THE NURSERY WERE ZIGZAGGING WILDLY IN ALL DIRECTIONS SEEMINGLY AT RANDOM",11],["YOU CAN LAUGH AT HIS BLOOD BOUGHT SALVATION CURSE HIS FOLLOWERS AND LAUGH AT HELL",2],["HE BELIEVED IN MAKING INSPIRING SPEECHES AND HE MADE A GREAT MANY",14],
+  ["THE THEATRE BY THE SEA MATUNUCK PRESENTS KING OF HEARTS BY JEAN KERR AND ELEANOR BROOKE",14],["HANEY SWISHED THE LIQUOR IN THE BOTTOM OF HIS GLASS",5],["THERE WAS NO DREAM OF ESCAPE FOR THESE PEOPLE",11],["HE SAID IF ITS ALL RIGHT WITH YOU MR MORGAN ILL SLEEP OUT HERE ON THE COUCH",13],
+  ["THE ONLY REASON WE BROUGHT YOU WAS TO GET MILLER OUT",13],["SHE FELT COLD AND HOT STICKY AND CHILLY AT THE SAME TIME",5],["ON HER WAY TO THE AIRPORT ON HER WAY TO PARIS YOU BET LUCY SAID TO HERSELF",8],["SHE SWUNG THE QUIRT AGAIN AND THIS TIME HE CAUGHT HER WRIST AND PULLED HER OUT OF THE SADDLE",13],
+  ["THE PIRATES HAVE A RECORD THIS YEAR AND THE REDBIRDS ARE",3],["OTHERS ADDED THAT JUET HAD WANTED TO TURN THE SHIP HOMEWARD",12],["IF HAL YARROW HAD BEEN KILLED IN A CRASH HE MUST HAVE WANTED IT THAT WAY",11],["WELL DIETRICH WONT BUDGE FROM MCCORMICK PLACE",14],
+  ["A TALL LADY WITH A RUFFLED COLLAR VERY LOW ON HER BOSOM TURNED INSOLENT GREEN EYES UPON HIM",6],["UNFORTUNATELY THE WHOLE PICTURE HINGES ON THIS ROMANCE AT THE EXPENSE OF EVERYTHING ELSE",14],["HE WAS MERELY CLEARING A WAY TO WHAT HE HAD TO DO",6],["EACH MEETING STARTS WITH A PRAYER OFFERED SPONTANEOUSLY BY ONE MEMBER OF THE GROUP",2],
+  ["TO BE ON THE SAFE SIDE I NEVER LET EILEEN GET OUT OF MY SIGHT DAY OR NIGHT",6],["PEOPLE APPRECIATE EXPERIENCES THAT DEMAND SOMETHING OF THEM",2],["LATER WE SHALL SEE WHAT HAPPENED WHEN AN EMPEROR TOOK THIS IDEA TOO LITERALLY",2],["DIDNT THEY TELL YOU WHAT I WANTED THE P A SYSTEM FOR",5],
+  ["NOW THEY GO TO A HIGH SCHOOL THAT IS TWO MILES AWAY",3],["ITS PURPOSE WAS TO FIND WAYS OF OFFSETTING THE UNITED STATES DECLINING BALANCE OF TRADE FOR AND",7],["SHE CAME TO NEW YORK FROM DETROIT AS A TEENAGER BUT WITH A SPONSOR INSTEAD OF A CHAPERONE",12],["GRADUALLY OTHERS WILL MOVE UP TO THE SAME LEVEL",7],
+  ["HE EVEN MAKES THE CITY LOOK LIKE ONE OF THOREAUS HANGOUTS",8],["BROOKLYN COLLEGE IS MARJORIE MORNINGSTAR TERRITORY AS MUCH AS THE BRONX OR CENTRAL PARK WEST",12],["THIS IS THE FAMILIAR SYSTEM OF COSMIC GOVERNMENT",2],["HOW MUCH AND HOW MANY PROFITS COULD A MAJORITY TAKE OUT OF THE LOSSES OF A FEW",1],
+  ["THE STEPMOTHER ALMOST WITHOUT EXCEPTION HAS BEEN PRESENTED AS A CRUEL OGRESS",4],["CARS ARE TRADED MOSTLY ON A THREE YEAR BASIS IN THE INTEREST OF ECONOMY",7],["BUT HE SAID IT TOO SOON FOR IT CAME OUT JUST BEFORE THE TAP TO WHICH THE DOOR RESPONDED",0],["AND GRAHAM WANTED MONEY PROBABLY TO ROAM AMONG THE DICE TABLES IN LAS VEGAS",5],
+  ["HE FINISHED THE WORSHIP SERVICE AS IF THERE HAD BEEN NO BRAZEN ATTEMPT TO DISHONOR GOD AND MAN",6],["FOR CASTRO WAS BRINGING CUBA NOT FREEDOM BUT HATRED",2],["AND IN THESE DAYS THIS INEVITABLY MEANS A CONCENTRATION ON THE EFFECTS OF THE CUBAN REVOLUTION",9],["THAT WAS WHY HE HADNT BEEN ABLE TO FINISH THE PORCH",0],
+  ["RIVERSIDE AND ANNISTON PLAYERS RUSHED OUT ON THE FIELD",8],["IN FACT VERY FEW CUSTOMERS ANYWHERE IN THE NATION WERE ABLE TO GET MORE THAN SHARES",3],["TO EAT IS HUMAN THE NATION IS LEARNING TO THINK TO SURVIVE DIVINE",14],["TARTUFFE IS THE RELIGIOUS HYPOCRITE WHO COURTS HIS BENEFACTORS WIFE",14],
+  ["BELOVED DR R F CAMPBELL OUR FIRST PRESBYTERIAN CHURCH PASTOR WAS IN CHARGE",4],["DO AVOID PUNCTURING OR CUTTING INTO MEATS TO TEST THEM",10],["THERE BEING NO BRIDGE THE MASTER HAD TO STOP AT THE SHORE",2],["THE DEAD YOUTH WAS IDENTIFIED AS ROBERT E SIMS OF OAK KNOLL CIR AJ",3],
+  ["IN GREEK TRAGEDY AS IN SHAKESPEARE MORTAL ACTIONS ARE ENCOMPASSED BY FORCES WHICH TRANSCEND MAN",4],["SOME OF THE HETMANS IDEAS WERE DREAM RIDDEN VAGUELY IMPARTED AND AT TIMES PREPOSTEROUS",4],["A GAGGLE OF GABBLING MOTHERS BACKS TO THE POOL IS NO SAFEGUARD",10],["ON THE OTHER HAND HOWSOMEVER MAYBE YOU WOULDNT EITHER",13],
+  ["KID ORY THE TROMBONIST CHICKEN FARMER IS ALSO ONE OF THE SOLID ANCHOR POINTS OF JAZZ",14],["THERE IS FOR EXAMPLE A STUNNING KRAKOWIAK THAT CLOSES THE FIRST ACT",14],["AS WE UNDERSTAND THIS DIRECTIVE WAS GIVEN TO ALL CITY AND COUNTY EMPLOYES",9],["REVERSING IT HE SMASHED THE BUTT DOWN ON FREDERICK SEWARDS HEAD OVER AND OVER AGAIN",6],
+  ["EKSTROHM LAY IN HIS BUNK AND LISTENED TO THE SOUNDS OF THE NIGHT ON YANCEY",11],["EILEEN MUST HAVE WHEEDLED A LITTLE OUT OF PRECIOUS",6],["SOME DISAPPEARED WITH THE ATTAINMENT OF THEIR PURPOSE",2],["NOT A SINGLE STRAND OF WIRE REACHED INTO THE SILENT HOUSES BESIDE THE RED CLAY ROAD",5],
+  ["A WINNING LITTLE SNOW MAIDEN VARIATION BY THE ADORABLE GALINA KEKISHEVA",14],["IN A CAMP INSTEAD OF SHIPBOARD HIDING THE SECRET WAS EASIER",11],["AS IF TO CONFIRM HIS STATURE HE QUICKLY WON THREE OF THE FIRST EIGHT TOURNAMENTS",3],["SCIENCE IS PLACING IN OUR HANDS THE ULTIMATE POWER OF THE UNIVERSE THE POWER OF THE ATOM",2],
+  ["WE ARE SLOWLY BEING REGIMENTED TO HAVING EVERYTHING PACKAGED WHETHER WE WANT IT OR NOT",9],["BUT IT DOES NOT AS IT CLAIMS DEMONSTRATE THAT THIS COULD NOT BE TREATED BY TRADITIONAL METHODS",1],["AND REASONS OTHER THAN EMPLOYEE NEED CONTRIBUTED TO THE GROWTH",7],["SEVEN YEARS AGO COMMODORE ROB SAID IMPASSIVELY",13],
+  ["PRACTICALLY THE ONLY ENTHUSIASM THEY SHOWED WAS WHEN THEY WERE DISCUSSING NAMES",0],["IF HE WAS SOBER WHICH WAS DOUBTFUL HED HAVE HIM GET IN TOUCH WITH MR CROMBIE",0],["OTHERS ARE DRS AND MMES ALFRED ROBBINS AND J LAFE LUDWIG AND GEN AND MRS LEROY WATSON",3],["FOR SHE DID NOT OBEY WHEN AS YET SHE WAS A VIRGIN",2],
+  ["HIS SMALL BLACK EYES DARTED INSIDE THE OLIVE OVAL OF HIS FACE",11],["HOWEVER THE AIRCRAFT WHICH WE HAVE TODAY ARE TIED TO LARGE SOFT AIRFIELDS",10],["A SHINE IN HER EYES SUDDENLY BECAME TEARS AND SHE TURNED BACK TO HER HUSBAND AGAIN",13],["MORELAND FIXED US EACH ANOTHER DRINK AND SAID FOR GODS SAKE TELL ME SOMETHING TRULY AMUSING",0],
+  ["AND THE SWEET SMELLING CUMARA NUT WHICH IS SUITED FOR PERFUMES",12],["TO SIMPLIFY THE FORMULAS A REPRESENTATIVE SYMBOL IS SUBSTITUTED FOR EACH OF THE FACTORS",10],["HE STARTED TO SAY SOMETHING AS I WALKED IN AND THEN SUDDENLY GRINNED AND SAID OH YES",5],["THE ROOM WAS DARK BUT A NEON SIGN FLASHED AND FADED BEYOND THE WINDOW",5],
+  ["THESE CARRIERS CUT HANDLING COSTS FOR THE DEALER AND THE BUILDER",10],["THAT THESE PRODUCTS CONSTITUTED A LINE OF COMMERCE WITHIN THE MEANING OF THE CLAYTON ACT",7],["IN THIS SYSTEM NO MAN IS EXEMPT FROM OBLIGATIONS",2],["LIMIT YOURSELF TO GOOD MEAT AND DRINK WITH BREAD SALAD CORN OR POTATOES AS ACCESSORIES",10],
+  ["IM INCLINED TO THINK THAT THEY ARE ABOUT TWO EARTH WEEKS EACH",11],["BDIKKAT HAD TURNED TO THE NEXT KNOT OF PEOPLE WHEN THE SUPER CONDAMINE HIT MERCER",11],["IT WAS GENERAL BURNSIDES HORSE RUNNING IN A CIRCLE",0],["THUS JAZZ IS TRANSMUTED INTO SOMETHING HOLY THE SACRED ROAD TO INTEGRATION OF BEING",4],
+  ["ILL HAVE A DRINK THEN IF YOULL HAVE ONE WITH ME",6],["CADY FELT THE JOLT AS THOUGH HE HAD STEPPED OFF THE CURB ON HIS HEEL",8],["IN THE OTHER A WRISTWATCH WITH BROKEN CRYSTAL WRAPPED IN A DIRTY HANDKERCHIEF",13],["OUR LORDS INVITATION WITH ITS IMPLIED PROMISE TO ALL IS COME AND SEE",2],
+  ["HE WAS LESS TO SEE BUT FEATHERTOP TOOK HIM IN TOO JUST TO KEEP THE RECORDS STRAIGHT",13],["IN SUCH A CASE FORM SHOULD BE COMPLETED AND ATTACHED TO THE RETURN",7],["DO NOT USE WOOD AS IT WILL NOT SHRINK WITH THE CLAY AND WOULD CAUSE BREAKAGE",10],["SHE WAS JUST ANOTHER FREIGHTER FROM THE STATES AND SHE SEEMED AS COMMONPLACE AS HER NAME",12],
+  ["RACHEL HAD TO BEND TOWARD SCOTTY AND ASK HIM TO REPEAT",6],["THE FOSSILIZED REMAINS OF MANY OF THESE TREES ARE FOUND EMBEDDED IN THE CLAY",9],["ALSO ITS JUST POSSIBLE SHE MIGHT KNOW SOMETHING ABOUT MRS GILBORN",5],["THE UNITED STATES AND ITS ALLIES HAVE HAD NO OBJECTION TO THIS",9],
+  ["WHILE ASSEMBLED LID IS STILL ON DESIGN HEAD GENTLY BUT FIRMLY PRESS IT ON PLASTER BOARD",10],["FURTHERMORE THERE WERE SOLID MUSICAL VIRTUES IN THE INTERPRETATION OF THE MUSIC",14],["MAKE USE OF THE BACK OF THE BARBECUE OR OF THE HOOD FOR HEATING VEGETABLES SAUCES AND SUCH",10],["THE OBSCURITY OF POLITICIANS MAY NOT ALWAYS BE AS INNOCENT AS IT LOOKS",0],
+  ["LITTLE FOLKS SET MADE FROM MODERN WOODEN MOLDS AF",10],["HUMAN LABOR WAS EXACTLY THAT A COMMODITY IN EIGHTEENTH AND NINETEENTH CENTURY AMERICA",3],["I DONT HAVE MANY STRAYS COMING TO MY FRONT DOOR HE SAID",13],["I KNEW IT AS SURELY AS EVERYBODY IN WESTFIELD THAT LUCILLE WAS A HUSBAND STEALER",8],
+  ["SHE WAS MIGHTY GOOD TO YOU PAST TIMES AN THISLL FETCH HER",8],["IT WAS NOT THAT THEY HAD BEEN CONTRACTED FOR DURING THE INTERVAL",2],["IVE BEEN WAITING TO GET THESE THINGS DONE FOR MONTHS SHE SAID",0],["DONE AT WASHINGTON IN DUPLICATE THIS FOURTH DAY OF MAY",7],
+  ["PALFREY PETITIONED THE STATE LEGISLATURE TO WAIVE THE REQUIREMENT",12],["THE DOOR OF THE LOCKUP WAS OF OAK PLANKS AND BANDED WITH STRAP IRON",13],["WASHED THEY CAME OUT SURPRISINGLY CLEAR AND BRIGHT",1],["HE IS GOING TO LET HISTORY TAKE THE BLAME FOR A WHILE",6],
+  ["AND ALSO THE MONEY CANT MEAN AS MUCH TO BOBBIE",8],["AT LEAST HE HAD THE DECENCY TO BLUSH SHE THOUGHT",8],["WE ARE STRONGER AND MORE SELF CONFIDENT AND LOW CANNOT SO EASILY PUT US TO RIGHTS",14],["NEWBIGGINS QUALIFICATION ON THE CHRISTIAN CLAIM IS OF CONSIDERABLE SIGNIFICANCE",2],
+  ["THE YEAR OLD SOUTHPAW ENLISTED EARLIER LAST FALL THAN DID HANSEN",3],["THERE ARE ICE CUBES IN A CONTAINER AT THE FAR END AND IN ANOTHER BY THE OFFICE",5],["WHICH IS UNDERSTANDABLE IF YOUVE EVER SAMPLED THE EXOTIC PEPPERY FARE",3],["MR WHITE WHO IS ONLY A COMPETENT NOVELIST IS A BRILLIANT REPORTER",14],
+  ["AS SHE REACHED THE KITCHEN DOOR THE ANSWER PRESENTED ITSELF",5],["SHE SMILED AND THE TEETH GLEAMED IN HER BEAUTIFULLY MODELED OLIVE FACE",6],["HIRED HARD LACKEYS OF THE WARMONGERING CAPITALISTS",6],["THE POND IS CURRENTLY SERVING PERSONS OR PERSONS PER ACRE",1],
+  ["HIS SARCASM WAS FOLLOWED BY A STUPID GRIN OF HIS THICK MOUTH AND BAD TEETH",5],["I HAD NO IDEA THAT YOU TOO WOULD BE ON THIS GLORIOUS VOYAGE",11],["PERFORMERS INCLUDE A COMPANY OF DANCERS AND A SYMPHONY ORCHESTRA",3],["RECENTLY JOHN SHERRILL WAS STRICKEN WITH ONE OF THE DEADLIEST FORMS OF CANCER",2],
+  ["FOR MEN WHO HAD LEFT CATTLE ALONE AFTER GETTING THEIR FIRST NOTICES HAD RECEIVED NO SECOND",13],["A BULLET TORE THE EARTH FROM BENEATH HIS FOOT WHEN HE WAS A STRIDE OR TWO FROM SAFETY",13],["THE TWO WERE SEPARATED FROM EACH OTHER BY THE SIX BAGATELLES OF OP",14],["IT COULD HALT A FLOOD OF COMMUNIST ARMS AND STRATEGIC SUPPLIES NOW REACHING CASTRO",7],
+  ["WHO WERE MORE INGRATIATING THAN GRACIOUS MORE PERSONALITIES THAN PERSONS",0],["THOSE RESPONSIBLE INCLUDED STARDEL HANOVER STARS PRIDE STARLETTE HANOVER",10],["HIS FINGERS TOUCHED THE BONE HANDLE OF A KNIFE",13],["SUCH A TWIST WOULD BE A TRAGEDY FOR THE DOMINICAN PEOPLE WHO DESERVE TO BREATHE WITHOUT FEAR",9],
+  ["NOR DID LOOKING AT ANNE EASE THE TENSION AS IT USUALLY DID",8],["THIS STYLE IS CHARACTERISTICALLY AN EXPRESSION OF THE COMMUNAL STYLE OF THE MIDDLE CLASSES",12],["OF ALL THE PLACES IN POLAND ANDREI HATED LUBLIN THE MOST",6],["BUT HE WAS VERY MUCH LIKE HIS ASSOCIATES IN HIS HATRED OF CAMP ROUTINE",12],
+  ["HE WENT BACK TO TOUCH HOME PLATE TURNED AND WALKED TO THE DUGOUT WITHOUT LOOKING BACK",8],["PHILOSOPHIC ANALYSIS OF THE ASSUMPTIONS AND PRESUMPTIONS OF THE SOCIAL SCIENCES",1],["THE INTELLECTUAL HONESTY AND CAPACITY TO RECOGNIZE THE TRUE PATH OF HER OWN BEST INTERESTS",4],["AFRAID YOULL LOSE YOUR JOB IF YOU DONT KEEP YOUR MOUTH SHUT",5],
+  ["TOM HAD BEEN LAYING FOR AARON MCBRIDE FOR A LONG TIME JUST WAITING TO CATCH HIM OUT OF LINE",13],["HE PREFERRED SLEEPING IN BED WITH HIS HEAD ON A PILLOW",14],["HE STARTED PRACTICE IN AND SERVED ON THE STATE BOARD OF MEDICAL EXAMINERS",3],["IT IS HARD FOR ME TO KNOW HOW I FEEL ABOUT LAURO DI BOSIS",4],
+  ["AND CARRIED HIM BACKWARD IN A FOOTBALLERS TACKLE",13],["THE BLUE RUG HAD BEEN ROLLED UP AND STACKED IN ONE CORNER OF THE ROOM",5],["I CROSSED THE BEAUTIFULLY FURNISHED LIVING ROOM TO THE PALE YELLOW PHONE",8],["A FURTHER ANGLICAN CHURCHES HAVE BEEN DEMOLISHED SINCE",2],
+  ["THE WALLS ARE HELD TOGETHER WITH METAL TIES PLACED IN THE WET MORTAR AS THE WALLS ARE BUILT",7],["FURTHERMORE THE CHROMATIC ABERRATIONS DEPEND ON THE CHOSEN HIGH VOLTAGE",1],["NOWADAYS WE TALK AS THOUGH THE BLITZ WERE JUST A SHORT SKIRMISH",13],["MERCER NEVER NOTICED THE NEEDLE TOUCH HIS ARM",11],
+  ["HER FACE WAS PALE BUT SET AND HER DARK EYES SMOLDERED WITH BLAME FOR BEN",13],["THE SPACE BETWEEN THEM IS FILLED WITH PIT RUN GRAVEL OR EARTH",7],["THIS VACATION HAD SEEMED LIKE A GOOD IDEA LAST WEEK WHEN HIS DOCTOR HAD PRESCRIBED IT",8],["HE HAD NO READY ANSWER AS MUCH FROM SURPRISE AS FROM THE FIT OF COUGHING",5],
+  ["UP SPOKE CARPENTER STAFFE WHO SAID HE WOULDNT GIVE TEN POUNDS TO BE HOME",12],["THE NEW FEES ARE EXPECTED TO RAISE AN ADDITIONAL IN THE REMAINDER OF AND MORE A YEAR AFTER THAT",3],["SHES BEEN TALKING ABOUT A PICTURE WINSTON HAD TOLD HIM",6],["HE CITED THE ELEPHANTINE DIMENSIONS OF THE SELDEN CASE RECORD",12],
+  ["HER GREAT LOVE OF FLOWERS AND PLANTS AND BIRDS",12],["HE SHUNNED PUBLICITY FOR HIMSELF AND SOUGHT TO AVOID FAME",2],["IM ALL ALONE AND CERTAIN THINGS ARE GOING ON THAT LOOK VERY OMINOUS",5],["SHEEP TO INCREASE RATE OF GAIN AND IMPROVE FEED EFFICIENCY FEED TO GRAMS PER TON",10],
+  ["IF PRESENTED IN THIS SPIRIT THE RESPONSE AND THE RESULTS WILL BE IMMEASURABLY BETTER",7],["SEATO WAS STEAMED UP AND PREPARED CONTINGENCY PLANS FOR COPING WITH THE MILITARY LOSSES IN LAOS",3],["THAT WAY HE CAN TRUCK HIS PARTS RIGHT INDOORS AND UNLOAD THEM UNDER THE ROOF",10],["I HAVE BEEN USING THE WORD VOCATIONAL AS A LAYMAN WOULD AT FIRST SIGHT THINK IT SHOULD BE USED",12],
+  ["NOW IT WAS NINE YEARS LATER AND IT WASNT SPRING BUT WINTER WHEN I RETURNED",8],["BASEMENT WALLS THAT PROJECT ABOVE THE GROUND SHOULD BE SHIELDED AS SHOWN IN THE APPENDIX PAGE",7],["THE ACCENT IS ON IMPROVISATION RATHER THAN ARRANGEMENTS",4],["SHE SMILED AT HIM WITH BENIGN REMOTE HAPPINESS",11],
+  ["THESE CONDITIONS MAN DID NOT KEEP AND THUS HE BECAME MORTAL",2],["PLEA FOR ARMS THE LAOS GOVERNMENT PLEA FOR HELP WAS MADE BY FOREIGN MINISTER TIAO SOPSAISANA",3],["WHEN A COWBOY SPOKE OF DUSTIN A COW HE MEANT THAT HE THROWED DUST INTO HER EYES",12],["HE IS BETTER FITTED TO PERFORM HIS SOCIAL LIFE AMONG HIS FELLOWS",1],
+  ["REACHING ACROSS THE SIDE OF THE STALL HE SLAPPED THE BUCKSKIN ON THE RUMP",13],["SHE HAD LET JIM GO WITH A CHILLY GOOD BY A CHILLIER KISS",8],["I THINK IT FAIR TO SAY THAT HE NEVER QUITE REACHED SUCH CANDOR IN HIS SERMONS",2],["NEVERTHELESS MONTGOMERY HAS STATED COURAGEOUSLY AND WISELY THE CRISIS OF THE WESTERN WORLD",14],
+  ["SUSAN HACKMANN AGE FROM BALTIMORE MD SHOWING A DACHSHUND WAS RD",10],["HELL THEY WERE FIGHTIN EACH OTHER SO HARD THEY HAD NO TIME FOR ANYONE ELSE",13],["THERE WAS A LIGHT IN BLACKS FRONT ROOM BUT DRAWN CURTAINS PREVENTED ANY VIEW OF THE INTERIOR",13],["AT THAT TIME THE SECOND HALF OF THE CHRISTIAN YOUTH CRUSADE AGAINST COMMUNISM WILL BE STAGED",3],
+  ["THE TRAGEDY IS THAT IT WILL NOT BE ABLE TO TRANSACT THAT BUSINESS IN ANY RESPONSIBLE MANNER",9],["BUT CORPORAL JOHNSON HAS ALREADEH SAID IT DIDN MAKE NO DIFFRUNCE THI IM",13],["YOU MAY CHANGE THE DIMENSIONS TO SUIT A FRAME FOR MORE OR FEWER LEVERS AND LOCKS AS YOU WISH",10],["LIGHT SHOWED IN THE ORDERLY ROOM ACROSS THE PARADE GROUND",13],
+  ["I DONT ASK YOU WHO TIS YOURE BEING UNFAITHFUL TO HUSBAND OR LOVER",6],["HE SAT UP AND WATCHED AS THEY PULLED THEMSELVES OVER THE STERN",5],["SO YOULL HAVE EVERYTHING ALL TO YOURSELF DOGGONE I LOOKED AT MY WATCH",13],["THE CHURCH TRULY IS NOT A REST HOME FOR SAINTS BUT A HOSPITAL FOR SINNERS",9],
+  ["ONE DID ONES BEST AND IF FORTUNE SMILED THERE WAS A REWARD",8],["IN A VOICE SO FRIGHTENED AS TO SEEM NOT HIS OWN THE BIG BOSUNS MATE QUAVERED TCHALO",13],["AND SHE WOULD SNATCH THE FINGER HELD HALF OF THE RADISH OUT TO WHERE SHE COULD INSPECT IT",0],["SUCH STRETCHES HAVE AN INHUMAN MOONLIKE QUALITY",4],
+  ["CERTAINLY IN THE MATTER OF PRINCIPALS THERE IS NOTHING LACKING",14],["WHAT DOES HE FEED HIS SMU FOOTBALL MASTODONS AT THE TRAINING TABLE",3],["AND THAT ACTION ALWAYS CAUSED HER TO LIFT HER LIP FROM THE STING OF THE THING",0],["NOW IN THE CATHOLIC POPULATION OF ENGLAND IS STILL QUITE SMALL TEN PER CENT OR MILLION",2],
+  ["HE PUT IN A CALL TO CUNNINGHAM FROM HIS HOTEL ROOM",5],["THE ASSOCIATION IS GOVERNED BY A BOARD MADE UP OF REPRESENTATIVES FROM EACH OF THE FOUR CLASSES",7],["THE NUMBER OF PRIMITIVE IDEAS IN SYSTEMATICALLY SIMPLE THEORIES IS REDUCED TO A MINIMUM",4],["OFF IN THE DISTANCE A SEARCHLIGHT FLASHED ON ITS BEAM SLASHING THE SKY",6],
+  ["THEN THERE WAS THE CATERERS AD WHICH READ ARE YOU GETTING MARRIED OR HAVING AN AFFAIR",0],["IN HIS MOMENTS OF WORST AGONY MARTIN IMAGINED WHAT HIS FRIENDS WERE SAYING",8],["GIVEN A SMALL BALL OR MARBLES HE WOULD INVENT GAMES AND PLAY BY HIMSELF FOR HOURS",14],["CONTROL WOULD BE LIMITED TO THOSE RODENTS FOR WHICH ECONOMICAL MEANS OF CONTROL ARE KNOWN",7],
+  ["SUPPLIES OF SHEET METAL WERE NEATLY STACKED IN BINS",5],["UNFORTUNATELY HAL WAITED MACNEFF PACED SOME MORE FROWNING",11],["ITS REALLY QUITE FUN AS LONG AS YOU LIKE GAMES",14],["THESE HARD SURFACE CLEANERS ARE DISCUSSED IN CHAPTER",1],
+  ["HARMONY MELODY COUNTERPOINT SYMPHONIC STRUCTURE ARE THERE",2],["EVEN AS SHE CALLED TO THE CHILDREN CONCHITA LET HER GAZE SEEK TOM BRANNON",13],["SOCIALISM I GRANT HAS A DEFINITE PLACE IN OUR SOCIETY",4],["BUT UP TO DATE HE HAS SHOWN AS MUCH AS ANY IN THE BIG SIMPSON STABLE",10],
+  ["THE FORMER RECEIVES ITS LEGITIMACY FROM THE LATTER",4],["THEY WERE ENGULFED BY THE WEIRD SILENCE BROKEN ONLY BY THE LOW ANGRY MURMUR OF THE RIVER",13],["IF IT WERE ITS HEAVILY CHROMATIC HARMONIES WOULD SOON BECOME CLOYING",14],["THEN THE PIXIES AND THE ZOMBIES TOOK OVER WHILE THE BANSHEES WAILED IN THE DISTANCE",3],
+  ["ONCE AGAIN OBANIONS BRASH RECKLESSNESS HAD CAUSED A PROLIFERATION OF ILL WILL",12],["ONE OUT OF EVERY THREE OR FOUR MARRIAGES ENDS IN DIVORCE",2],["THEY READ EVERY BOOK THAT THEY COULD BORROW IN THE VILLAGE",10],["SHE TELLS HIM OF THE CONSEQUENCES OF HIS BEHAVIOR",9],
+  ["COULD SUCH UNADULTERATED LOVE FOR A TOTAL STRANGER BE CREDITED",0],["INTRODUCE EACH NEW MEMBER TO THE CONGREGATION ASKING HIM TO FACE THE CONGREGATION",2],["IT IS EXPECTED THAT IN TWO PROTOTYPE AIRCRAFT WILL BE AVAILABLE FOR FLIGHT TESTING",7],["AMONG HIS OTHER PARTS ARE THE LEADS IN THE BOURGEOIS GENTLEMAN AND THE IMAGINARY INVALID",14],
+  ["AFTER A WHILE WE BECAME AWARE THAT THE MONEY WAS DISAPPEARING AS FAST AS WE REPLENISHED IT",0],["FACED SEVEN CASES KARNS HAD BEEN SCHEDULED THIS WEEK TO HEAR SEVEN CASES INVOLVING PERSONS",3],["HE WATCHED HIS OWN BODY WITH REMOTE CASUAL INTEREST",11],["A MEMORY LAPSE IN THE LAST SOMEWHAT MARRED THE PIANISTS PERFORMANCE",14],
+  ["IDJE STILL STARED OVER OUR SHOULDERS AT THE HORIZON",4],["HE LIKE MOST OF US WANTS TO BE ABLE TO SIT TO CONTEMPLATE AND BE MOVED BY THE GREAT OUTDOORS",9],["THE TROOPERS KNEW AN ATTACK WAS COMING BUT THEY DIDNT KNOW WHEN AND THEY DIDNT KNOW WHERE",12],["WHEN IT IS NEEDED ONE FORMULA IS AS IMPORTANT AS ANOTHER",10],
+  ["THE COMMANDER HAS FAILED IN HIS DUTY IF HE HAS NOT WON VICTORY FOR THAT IS HIS DUTY",14],["THE FLOW RATE REMAINED RELATIVELY CONSTANT DURING THE WINTER MONTHS AS SHOWN IN TABLE",1],["YOU MAY RECLAIM YOUR PROPERTY AND THE PENALTY ON HESPERUS IS LIFTED",11],["IT ISNT AS EXPENSIVE AS MOST PEOPLE BELIEVE IT TO BE",10],
+  ["WALKING AWAY ON IMPULSE HE MIGHT LOGICALLY LEAVE BEHIND WHAT IT WAS INCONVENIENT TO CARRY",5],["IF WE ARE BORN OF GOD WE PRACTICE RIGHTEOUSNESS",2],["YOU ARE ABOUT TO BECOME A FIRST CLASS SURVEYOR RECTOR SAID",6],["THE FOLLOWING STEPS ARE EMPLOYED IN THE CALCULATIONS",7],
+  ["AND ANOTHER TIME WITHOUT ACCUSATION YOU NEVER WORE THAT SCARF I BOUGHT YOU",6],["AN INTEREST FINDER OR TALENT SHEET MAY BE FILLED OUT BY EACH PERSON",2],["IS IT BECAUSE OF MY SLOVENLINESS THAT HAIR GROWS ON MY FACE",6],["THEY BROK RUN AND ARCH HOLORED OUT TO SHOOT THE ORNERY SUNS OF BICHES AND WE ALL LET GO AT THEM",12],
+  ["LET US NOW REGARD D AS A LINEAR OPERATOR ON THE SUBSPACE V",1],["THE SOUND MOCKERY OF SHEEP IS LIKE THE SALUBRIOUS HORSE LAUGH",0],["UNTIL SUCH EVIDENCE APPEARS WE MUST MAKE DO WITH THE EVIDENCE WE HAVE",1],["AS A YOUTH HE BECAME ONE OF FINNEYS BAND OF EVANGELISTS AND GAVE HIMSELF TO WINNING YOUNG MEN",2],
+  ["GUN TOLD HIMSELF THAT THE OLD BASTARD WAS A FOOL",5],["THERES A LOT OF TALK ABOUT THE PROBLEM OF EDUCATION IN AMERICA TODAY",3],["THE TENDENCY FOR GENERAL BUSINESS ACTIVITY TO SOFTEN SOMEWHAT IS BECOMING MORE EVIDENT",1],["WITH HIS LONG SERVICE HE HAD A LONG MEMORY AN EXCELLENT THING IN A POLITICAL LEADER",9],
+  ["WHEN I ARRIVED AT VIOLAS I WAS SHOWN TO MY SURPRISE INTO THE KITCHEN",0],["BUT THE BRIGADIER DINES ON THE BIRDS WITH RELISH",14],["THE ARTIST AUTHOR SAID NOTHING BUT STOOD TO ONE SIDE",4],["HE ROSE SLOWLY AND LOOKED INTO THE MIRROR ON THE INSIDE OF THE CLOSET DOOR",8],
+  ["THE OUTSIDE INCH SPACE IS FILLED BY MORTARING BLOCKS ON EDGE",7],["THERE IS A DIFFERENCE IN THEOLOGICAL BELIEF WHERE THERE SEEMS LITTLE CHANCE OF AGREEMENT",12],["WORST OF ALL WALLY HAD NO TRAINING FOR ANY KIND OF WORK",8],["IN THAT CASE LISTEN TO WHAT BEFELL ANOTHER WISENHEIMER WHO TANGLED WITH OUR JOSS",0],
+  ["REPEATING IT LIKE A STUDENT TELLING HIMSELF THAT THE JEWEL IS IN THE LOTUS HE SANK INTO NIRVANA",11],["GREASES STAINS AND MISCELLANEOUS SOILS ARE USUALLY SORBED ONTO THE SOILED SURFACE",1],["IN THE PAST FEW YEARS THE MEN MOSTLY HUSBANDS OF MEMBERS HAVE TAKEN AN INTEREST",3],["HE DOES NOT EXPECT TO GET GREAT RICHES OR HE WOULD NOT HAVE CHOSEN TO ANSWER THE CALL TO PREACH",9],
+  ["WHAT HAD HE THOUGHT OF TO GO TO JOHN GROVEL AND BEG UNDERSTANDING",6],["AND WHAT YOU CANT SEE THE LAND UNDERNEATH THE WATER BELONGS TO SOMEONE TOO",9],["AS SHOWN IN FIGURE THERE IS A CONNECTION FOR COMMUNICATION BETWEEN EVERY PAIR OF POINTS",4],["AND THE COMMON MAN WAS DEVELOPING MYTHIC POWER OR CHARISMA ON HIS OWN",4],
+  ["HE GAVE IT A STRONG PUSH HEARD IT SLIDE THEN TUMBLE DRYLY INTO THE HOLE",5],["HE WAS FINALLY FOUND IN THE BATES HOLE REGION OF NATRONA COUNTY TWO COUNTIES AWAY",13],["WELL IT HADNT BEEN WHAT IT SEEMED HED HAD NO IDEA THE GIRL WAS IN THERE",5],["EXPE DOESNT LIKE ANYBODY MUCKING UP PRIMARY EVIDENCE",11],
+  ["YET EVEN IN THESE MARRIAGES PSYCHOLOGISTS SAY WIVES ARE ASSERTING THEMSELVES MORE STRONGLY",12],["BUT THE FIRST GLASS OF CHATEAU DYQUEM OR MONTRACHET IS A GREAT DEAL BETTER THAN THE LAST",12],["AND WHY WAS IT CAUSING SO MUCH AGITATION AMONG THE ANGELS AND BEING FOLLOWED BY SO MANY OF THEM",11],["MORNING SESSIONS INCLUDED ADDRESSES BY WARD MILLER JR OF THE U S DEPT OF COMMERCE",7],
+  ["WATCH CLOSELY WHILE BROWNING THEM AS IT DOESNT TAKE LONG",10],["HER POSITION COVERS A NUMBER OF DAILY TASKS COMMON TO ANY SOCIAL DIRECTOR",3],["HE FURTHER PROPOSED GRANTS OF AN UNSPECIFIED SUM FOR EXPERIMENTAL HOSPITALS",3],["ONE SITTER MAY THINK A LEATHER COUCH IDENTIFIES A READING AS SURELY DIRECTED TO HIM",12],
+  ["IF THEY SAY THEY ARE SATISFIED THIS SHOWS UNCONSCIOUS ALIENATION",1],["DEEGAN THE MANAGER SAID HIS VOICE PITCHED LOW QUIVERING",8],["ANYONE CAN DRAW HIS OWN CONCLUSIONS FROM THIS DIFFERENCE",14],["IN THE RAILWAY STATION AT BERLIN A UNIFORMED ATTENDANT WAS CHANTING FOREIGNERS THIS WAY",0],
+  ["WALLY CANT GO ANY PLACE AT THIS HOUR WELL THEN ILL GET OUT BUT SHE LOOKED UNCERTAIN",8],["THERE ARE VARIOUS SETS OF EXCEPTIONAL LINES OR LINES WHOSE IMAGES ARE NOT UNIQUE",1],["SAWALISCH ALSO CONDUCTS THE FLYING DUTCH OPENING JULY",14],["THE ENGLISH HAVE MANAGED TO HOLD ONTO THEIR MADRIGAL TRADITION BETTER THAN ANYONE ELSE",14],
+  ["BE CAREFUL TO KEEP THE DRIVE BELT FREE OF OIL AND GREASE",10],["I MYSELF HAVE IDENTIFIED ABOUT SIXTY SITES FROM THE OLD MAPS AND REGISTERS",5],["THERE IS NON FICTION AND NON NON FICTION I SAID",0],["MUCH HAPPENED IN THIS FIELD DURING THE PAST MONTHS",9],
+  ["NATURAL CAUSES TO THE EDITOR SIR AN OLD MAN IS KICKED TO DEATH BY MUGGERS",9],["THE BIG MAN SELDOM GAVE OUT WITH SUCH THOUGHTS",11],["ALL WERE CARRYING GUNS THEY HAD SEIZED UP BUT THEY WERE HALF CLAD OR HARDLY CLAD AT ALL",13],["THE ONLY THING THAT WORRIES ME IS HOW IM GOING TO PROVE IT EUGENIA SAID",8]
+];
+
+  var PASSAGES = LITERARY_PASSAGES.concat(BROWN_PASSAGES.map(function(row){
+    return { text: row[0], source: "Brown Corpus \u2014 " + BROWN_CATEGORIES[row[1]] };
+  }));
+
+  function normalize(s){
+    return s.toUpperCase().replace(/[\u2019']/g, "").replace(/[^A-Z]/g, " ").replace(/\s+/g, " ").trim();
+  }
+  PASSAGES.forEach(function(p){ p.text = normalize(p.text); });
+
+  var WARMUP_OPTIONS = [0, 3, 6, 10, 15];
+  var DEFAULT_WARMUP = 6;
+  function loadWarmup(){
+    try {
+      var v = Number(localStorage.getItem("shannon-game-warmup"));
+      if (WARMUP_OPTIONS.indexOf(v) !== -1) return v;
+    } catch (e){}
+    return DEFAULT_WARMUP;
+  }
+  function saveWarmup(v){
+    try { localStorage.setItem("shannon-game-warmup", String(v)); } catch (e){}
+  }
+
+  var state = {
+    passageIdx: -1,
+    text: "",
+    source: "",
+    pos: 0,
+    avail: new Set(LETTERSPACE),
+    attempt: 1,
+    counts: {},
+    totalDone: 0,
+    finished: false,
+    locked: false,
+    warmup: loadWarmup()
+  };
+
+  var els = {};
+  ["tape","remainingCount","attemptCount","availReadout","keyboard","completionPanel",
+   "completionText","statChars","statAvg","statRedundancy","entLow","entHigh",
+   "gaugeRange","histogram","tooltip","newPassageBtn","resetBtn","playAgainBtn","warmupPills"
+  ].forEach(function(id){ els[id] = document.getElementById(id); });
+
+  // ---------- keyboard: built once, then updated in place ----------
+  var keyButtons = {};
+  function buildKeyboard(){
+    var frag = document.createDocumentFragment();
+    LETTERSPACE.forEach(function(letter){
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "key" + (letter === " " ? " space" : "");
+      btn.textContent = letter === " " ? "Space" : letter;
+      btn.dataset.key = letter;
+      btn.addEventListener("click", function(){ handleGuess(letter); });
+      keyButtons[letter] = btn;
+      frag.appendChild(btn);
+    });
+    els.keyboard.appendChild(frag);
+  }
+  function updateKeyboardState(){
+    LETTERSPACE.forEach(function(letter){
+      var btn = keyButtons[letter];
+      var isAvail = state.avail.has(letter);
+      btn.classList.toggle("used", !isAvail);
+      btn.disabled = !isAvail || state.locked || state.finished;
+    });
+  }
+  function flashKey(letter, kind){
+    var btn = keyButtons[letter];
+    var cls = kind === "good" ? "flash-good" : "flash-bad";
+    btn.classList.remove(cls);
+    void btn.offsetWidth;
+    btn.classList.add(cls);
+    setTimeout(function(){ btn.classList.remove(cls); }, 520);
+  }
+
+  // ---------- tape ----------
+  function renderTape(justRevealed){
+    var html = "";
+    for (var i = 0; i < state.text.length; i++){
+      var ch = state.text[i];
+      var isSpace = ch === " ";
+      var isCurrent = !state.finished && i === state.pos;
+      var isRevealed = i < state.pos;
+      var justIn = justRevealed && isRevealed && i === state.pos - 1;
+      var cls = "tape-char";
+      if (isCurrent) cls += " current";
+      else if (isRevealed) cls += " revealed";
+      if (isSpace) cls += " is-space";
+      if (justIn) cls += " just-in";
+      var content = isRevealed ? (isSpace ? "·" : ch) : "";
+      html += '<span class="' + cls + '">' + content + '</span>';
+    }
+    els.tape.innerHTML = html;
+    els.remainingCount.textContent = state.finished ? 0 : (state.text.length - state.pos);
+  }
+
+  function renderAvailReadout(){
+    var s = LETTERSPACE.map(function(l){
+      if (!state.avail.has(l)) return "-";
+      return l === " " ? "␣" : l;
+    }).join("");
+    els.availReadout.textContent = "[" + s + "]";
+  }
+
+  // ---------- entropy ----------
+  function entropyBounds(counts){
+    var tot = 0;
+    for (var k in counts) tot += counts[k];
+    if (tot === 0) return { low: 0, high: 0 };
+    var q = new Array(30).fill(0);
+    for (var i = 1; i <= 27; i++) q[i] = (counts[i] || 0) / tot;
+    var low = 0;
+    for (i = 1; i <= 27; i++) low += i * Math.log2(i) * (q[i] - q[i+1]);
+    var high = 0;
+    for (i = 1; i <= 27; i++) if (q[i] > 0) high += -q[i] * Math.log2(q[i]);
+    return { low: low, high: Math.max(0, high) };
+  }
+
+  function updateGauge(low, high, hasData){
+    var pct = function(v){ return Math.max(0, Math.min(100, (v / MAX_ENTROPY) * 100)); };
+    var left = pct(low);
+    var width = Math.max(hasData ? 0.8 : 0, pct(high) - pct(low));
+    els.gaugeRange.style.left = left + "%";
+    els.gaugeRange.style.width = width + "%";
+    els.gaugeRange.style.opacity = hasData ? "1" : "0";
+  }
+
+  function updateStatsAndEntropy(){
+    var bounds = entropyBounds(state.counts);
+    var hasData = state.totalDone > 0;
+    els.entLow.textContent = bounds.low.toFixed(2);
+    els.entHigh.textContent = bounds.high.toFixed(2);
+    updateGauge(bounds.low, bounds.high, hasData);
+
+    els.statChars.textContent = state.totalDone;
+    var sumAttempts = 0;
+    for (var k in state.counts) sumAttempts += Number(k) * state.counts[k];
+    els.statAvg.textContent = hasData ? (sumAttempts / state.totalDone).toFixed(2) : "–";
+
+    var mid = (bounds.low + bounds.high) / 2;
+    els.statRedundancy.textContent = hasData ? Math.round((1 - mid / MAX_ENTROPY) * 100) + "%" : "–";
+
+    els.attemptCount.textContent = state.attempt;
+
+    renderHistogram(state.counts);
+  }
+
+  // ---------- histogram ----------
+  var NBINS = 12;
+  function renderHistogram(counts){
+    var values = [];
+    for (var i = 1; i <= NBINS; i++) values.push(counts[i] || 0);
+    var overflow = 0;
+    for (i = NBINS + 1; i <= 27; i++) overflow += counts[i] || 0;
+    var labels = values.map(function(_, idx){ return String(idx + 1); });
+    if (overflow > 0){ values.push(overflow); labels.push((NBINS+1) + "+"); }
+
+    var n = values.length;
+    var maxV = Math.max(1, Math.max.apply(null, values));
+    var W = 320, H = 150;
+    var padL = 6, padR = 6, padTop = 22, padBottom = 22;
+    var plotW = W - padL - padR, plotH = H - padTop - padBottom;
+    var gap = 6;
+    var barW = (plotW - gap * (n - 1)) / n;
+
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" width="100%" height="150">';
+    for (var idx = 0; idx < n; idx++){
+      var v = values[idx];
+      var barH = maxV > 0 ? (v / maxV) * plotH : 0;
+      var x = padL + idx * (barW + gap);
+      var y = padTop + plotH - barH;
+      svg += '<rect class="hist-bar" data-rank="' + labels[idx] + '" data-count="' + v + '" ' +
+             'tabindex="0" role="img" aria-label="' + v + ' letters needed ' + labels[idx] + ' guess' + (v === 1 ? "" : "es") + '" ' +
+             'x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + Math.max(0,barH).toFixed(1) + '" rx="3"></rect>';
+      if (v > 0){
+        svg += '<text class="hist-value" x="' + (x + barW/2).toFixed(1) + '" y="' + (y - 5).toFixed(1) + '" font-size="9" text-anchor="middle">' + v + '</text>';
+      }
+      svg += '<text class="hist-axis" x="' + (x + barW/2).toFixed(1) + '" y="' + (H - 6) + '" font-size="9" text-anchor="middle">' + labels[idx] + '</text>';
+    }
+    svg += '</svg>';
+    els.histogram.outerHTML = svg.replace("<svg ", '<svg id="histogram" class="histogram" role="img" aria-label="Histogram of how many guesses each letter required" ');
+    els.histogram = document.getElementById("histogram");
+    attachHistogramHover();
+  }
+
+  function attachHistogramHover(){
+    var bars = els.histogram.querySelectorAll(".hist-bar");
+    bars.forEach(function(bar){
+      bar.addEventListener("mouseenter", showTip);
+      bar.addEventListener("mousemove", showTip);
+      bar.addEventListener("focus", showTip);
+      bar.addEventListener("mouseleave", hideTip);
+      bar.addEventListener("blur", hideTip);
+    });
+  }
+  function showTip(e){
+    var bar = e.currentTarget;
+    var rank = bar.dataset.rank, count = bar.dataset.count;
+    els.tooltip.textContent = count + " letter" + (count === "1" ? "" : "s") + " took " + rank + " guess" + (rank === "1" ? "" : "es");
+    var rect = bar.getBoundingClientRect();
+    var x = e.clientX !== undefined && e.type !== "focus" ? e.clientX : rect.left + rect.width / 2;
+    var y = e.clientX !== undefined && e.type !== "focus" ? e.clientY - 12 : rect.top - 8;
+    els.tooltip.style.left = x + "px";
+    els.tooltip.style.top = y + "px";
+    els.tooltip.classList.add("show");
+  }
+  function hideTip(){ els.tooltip.classList.remove("show"); }
+
+  // ---------- game flow ----------
+  function pickPassageIndex(){
+    if (PASSAGES.length === 1) return 0;
+    var idx;
+    do { idx = Math.floor(Math.random() * PASSAGES.length); } while (idx === state.passageIdx);
+    return idx;
+  }
+
+  function updateWarmupPillsUI(){
+    var pills = els.warmupPills.querySelectorAll(".pill");
+    pills.forEach(function(pill){
+      pill.classList.toggle("active", Number(pill.dataset.warmup) === state.warmup);
+    });
+  }
+  function setWarmup(v){
+    state.warmup = v;
+    saveWarmup(v);
+    updateWarmupPillsUI();
+    restartCurrentPassage();
+  }
+  els.warmupPills.querySelectorAll(".pill").forEach(function(pill){
+    pill.addEventListener("click", function(){ setWarmup(Number(pill.dataset.warmup)); });
+  });
+
+  function beginPassage(idx){
+    state.passageIdx = idx;
+    state.text = PASSAGES[idx].text;
+    state.source = PASSAGES[idx].source;
+    state.pos = Math.min(state.warmup, state.text.length - 1);
+    state.avail = new Set(LETTERSPACE);
+    state.attempt = 1;
+    state.finished = false;
+    state.locked = false;
+    els.completionPanel.classList.remove("show");
+    renderTape(false);
+    renderAvailReadout();
+    updateKeyboardState();
+    updateStatsAndEntropy();
+  }
+
+  function startPassage(){
+    beginPassage(pickPassageIndex());
+  }
+
+  function restartCurrentPassage(){
+    beginPassage(state.passageIdx === -1 ? pickPassageIndex() : state.passageIdx);
+  }
+
+  function resetStats(){
+    state.counts = {};
+    state.totalDone = 0;
+    startPassage();
+  }
+
+  function finishPassage(){
+    state.finished = true;
+    updateKeyboardState();
+    renderTape(true);
+    els.completionText.innerHTML = 'From <span class="source">' + state.source + '</span>. ' +
+      'Overall estimate so far: <b>' + document.getElementById("entLow").textContent + '–' + document.getElementById("entHigh").textContent + ' bits/letter</b> across ' +
+      state.totalDone + ' letters.';
+    els.completionPanel.classList.add("show");
+  }
+
+  function handleGuess(letter){
+    if (state.finished || state.locked) return;
+    if (!state.avail.has(letter)) return;
+
+    var target = state.text[state.pos];
+
+    if (letter === target){
+      flashKey(letter, "good");
+      state.counts[state.attempt] = (state.counts[state.attempt] || 0) + 1;
+      state.totalDone++;
+      state.locked = true;
+      updateKeyboardState();
+      updateStatsAndEntropy();
+      setTimeout(function(){
+        state.pos++;
+        state.attempt = 1;
+        state.avail = new Set(LETTERSPACE);
+        state.locked = false;
+        if (state.pos >= state.text.length){
+          finishPassage();
+        } else {
+          renderTape(true);
+          renderAvailReadout();
+          updateKeyboardState();
+          updateStatsAndEntropy();
+        }
+      }, 260);
+    } else {
+      flashKey(letter, "bad");
+      state.avail.delete(letter);
+      state.attempt++;
+      renderAvailReadout();
+      updateKeyboardState();
+      els.attemptCount.textContent = state.attempt;
+    }
+  }
+
+  window.addEventListener("keydown", function(e){
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (state.finished || state.locked) return;
+    var k = null;
+    if (e.key === " " || e.code === "Space") k = " ";
+    else if (/^[a-zA-Z]$/.test(e.key)) k = e.key.toUpperCase();
+    if (!k) return;
+    e.preventDefault();
+    handleGuess(k);
+  });
+
+  els.newPassageBtn.addEventListener("click", startPassage);
+  els.playAgainBtn.addEventListener("click", startPassage);
+  els.resetBtn.addEventListener("click", resetStats);
+
+  buildKeyboard();
+  updateWarmupPillsUI();
+  startPassage();
+})();
+</script>
+</body>
+</html>
