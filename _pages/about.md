@@ -26,6 +26,10 @@ latest_posts:
     float: none;
     margin: 0 auto 1rem;
   }
+  /* flat photo: drop the theme's z-depth-1 shadow */
+  .profile img {
+    box-shadow: none;
+  }
   @media (min-width: 576px) {
     .profile.float-right {
       width: 20%;
