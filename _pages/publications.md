@@ -25,6 +25,6 @@ Full list from my CV. See also [Google Scholar](https://scholar.google.com/citat
 
 <div class="publications">
 
-{% bibliography --file preprints %}
+{% bibliography --file preprints --group_by none %}
 
 </div>
