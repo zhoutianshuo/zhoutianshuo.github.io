@@ -1,42 +1,8 @@
 name: Integration tests
 
+# Template regression tests (they check al-folio's demo content), so they only run manually on this personal site.
 on:
-  push:
-    branches:
-      - master
-      - main
-      - v1.0-dev
-    paths:
-      - "Gemfile"
-      - "Gemfile.lock"
-      - "_config.yml"
-      - "_data/**"
-      - "_pages/**"
-      - "_posts/**"
-      - "_projects/**"
-      - "assets/**"
-      - "test/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/unit-tests.yml"
-  pull_request:
-    branches:
-      - master
-      - main
-      - v1.0-dev
-    paths:
-      - "Gemfile"
-      - "Gemfile.lock"
-      - "_config.yml"
-      - "_data/**"
-      - "_pages/**"
-      - "_posts/**"
-      - "_projects/**"
-      - "assets/**"
-      - "test/**"
-      - "package.json"
-      - "package-lock.json"
-      - ".github/workflows/unit-tests.yml"
+  workflow_dispatch:
 
 jobs:
   comments-integration-tests:

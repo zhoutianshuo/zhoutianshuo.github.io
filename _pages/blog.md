@@ -101,6 +101,11 @@ pagination:
 
 {% endif %}
 
+{% if site.posts.size == 0 %}
+
+  <p>Posts coming soon.</p>
+  {% endif %}
+
   <ul class="post-list">
 
     {% if page.pagination.enabled %}

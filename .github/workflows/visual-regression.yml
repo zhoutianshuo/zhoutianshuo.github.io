@@ -1,38 +1,8 @@
 name: Visual regression checks
 
+# Template regression tests (they check al-folio's demo content), so they only run manually on this personal site.
 on:
-  pull_request:
-    branches: [main, master, v1.0-dev]
-    paths:
-      - "_config.yml"
-      - "_data/**"
-      - "_bibliography/**"
-      - "_pages/**"
-      - "_posts/**"
-      - "_projects/**"
-      - "assets/**"
-      - "test/visual/**"
-      - ".github/workflows/visual-regression.yml"
-      - "package.json"
-      - "package-lock.json"
-      - "Gemfile"
-      - "Gemfile.lock"
-  push:
-    branches: [v1.0-dev]
-    paths:
-      - "_config.yml"
-      - "_data/**"
-      - "_bibliography/**"
-      - "_pages/**"
-      - "_posts/**"
-      - "_projects/**"
-      - "assets/**"
-      - "test/visual/**"
-      - ".github/workflows/visual-regression.yml"
-      - "package.json"
-      - "package-lock.json"
-      - "Gemfile"
-      - "Gemfile.lock"
+  workflow_dispatch:
 
 jobs:
   visual-regression:
