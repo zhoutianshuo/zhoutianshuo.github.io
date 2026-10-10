@@ -32,8 +32,31 @@ latest_posts:
       float: right;
       margin: 0 0 1rem 2.5rem;
     }
+    /* keep the name and subtitle clear of the photo, which is pulled up beside them */
+    .post-header {
+      padding-right: calc(20% + 2.5rem);
+    }
   }
 </style>
+
+<!-- pull the photo up so its top lines up with the top of the name heading (desktop only) -->
+<script>
+  (function () {
+    var profile = document.querySelector(".profile.float-right");
+    var title = document.querySelector(".post-header .post-title");
+    if (!profile || !title) return;
+    var desktop = window.matchMedia("(min-width: 576px)");
+    function align() {
+      profile.style.marginTop = "0px";
+      if (!desktop.matches) return;
+      var offset = profile.getBoundingClientRect().top - title.getBoundingClientRect().top;
+      profile.style.marginTop = -offset + "px";
+    }
+    align();
+    window.addEventListener("load", align);
+    window.addEventListener("resize", align);
+  })();
+</script>
 
 I completed my Ph.D. in Computer Science at Oregon State University in January 2026, advised by [Prof. Liang Huang](https://web.engr.oregonstate.edu/~huanlian/).
 My research focused on AI for science: I developed efficient algorithms and generative models for biological sequence generation, drawing on methods from natural language processing.
