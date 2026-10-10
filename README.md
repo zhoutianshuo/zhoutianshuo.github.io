@@ -53,6 +53,69 @@ If you have Ruby 3.x and Bundler 4.0.6 installed natively, the equivalent is `bu
 
 The two tools under `tools/` (Lunar Calendar, Shannon Game) are plain static pages, so you can also open them directly without a server, e.g. `open tools/shannon-game/index.html`.
 
+## Adding a blog post
+
+A post is one Markdown file in `_posts/`, named `YYYY-MM-DD-short-title.md`. The name sets the URL: `_posts/2026-10-12-my-first-post.md` is published at `/blog/2026/my-first-post/`. Math (MathJax) and code highlighting are enabled site-wide, so no extra setup is needed.
+
+````markdown
+---
+layout: post
+title: my first post
+date: 2026-10-12 10:00:00-0700
+description: one-line summary shown in the blog list
+tags: rna algorithms
+categories: research
+---
+
+Regular **Markdown**: _italics_, [links](https://example.com), lists, and tables.
+
+Inline math uses double dollar signs: $$ \Delta G = -RT \ln K $$.
+
+$$
+Z = \sum_{s} e^{-\Delta G(s) / RT}
+$$
+
+\begin{equation}
+\label{eq:boltzmann}
+P(s) = \frac{e^{-\Delta G(s)/RT}}{Z}
+\end{equation}
+
+Refer to it with \eqref{eq:boltzmann}.
+
+```python
+def fib(n):
+    a, b = 0, 1
+    for _ in range(n):
+        a, b = b, a + b
+    return a
+```
+
+{% highlight cpp linenos %}
+int main() { return 0; }
+{% endhighlight %}
+````
+
+Front matter fields:
+
+| Field                  | Purpose                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| `layout: post`         | Required; uses the blog post template                                                 |
+| `title`, `description` | Shown on the post and in the blog list                                                |
+| `date`                 | Publication date; include the time zone offset (e.g. `-0700`) to avoid date surprises |
+| `tags`, `categories`   | Space-separated; each gets an archive page such as `/blog/tag/rna/`                   |
+
+Optional: `toc:` with `beginning: true` adds a table of contents, `featured: true` pins the post to the top of the blog, and `related_posts: false` hides the related-posts box.
+
+Things to watch out for:
+
+- Use `$$` for math, both inline and display; a single `$` is not treated as math.
+- Underscores or `|` inside inline math can be misread as Markdown; move the formula to a display block or escape the character (`\_`).
+- Posts dated in the future are skipped until a build runs after that date.
+- `{{ }}` or `{% %}` inside code (Jinja, Liquid) is interpreted by Jekyll; wrap that code in `{% raw %}` … `{% endraw %}`.
+- Put images in `assets/img/` and reference them as `![alt text](/assets/img/figure.png)`.
+
+Preview the post locally (see above) at <http://localhost:8080/blog/>, then commit and push the file. Pushing to `main` deploys it, and the blog's "Posts coming soon." placeholder disappears once a post exists.
+
 ## Getting started
 
 **⚠️ Important: Use "Use this template" (not fork)**
@@ -78,6 +141,7 @@ Want to learn more about Jekyll? Check out [this tutorial](https://www.taniarasc
 
 - [al-folio](#al-folio)
   - [Previewing this site locally](#previewing-this-site-locally)
+  - [Adding a blog post](#adding-a-blog-post)
   - [Getting started](#getting-started)
   - [Table Of Contents](#table-of-contents)
   - [Installing and Deploying](#installing-and-deploying)
