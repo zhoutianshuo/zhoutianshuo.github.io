@@ -41,7 +41,8 @@ Currently, I work on machine learning for marketplace forecasting at Uber.
 
 ## research interests
 
-- AI for Science (Computational Biology)
+- AI for Science
+- Computational Biology
 - Natural Language Processing
 - Web Search
 
