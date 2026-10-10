@@ -19,6 +19,22 @@ latest_posts:
   enabled: false
 ---
 
+<!-- profile photo at 2/3 of the theme default (30% desktop, 100% mobile) -->
+<style>
+  .profile.float-right {
+    width: 66.67%;
+    float: none;
+    margin: 0 auto 1rem;
+  }
+  @media (min-width: 576px) {
+    .profile.float-right {
+      width: 20%;
+      float: right;
+      margin: 0 0 1rem 1rem;
+    }
+  }
+</style>
+
 I completed my Ph.D. in Computer Science at Oregon State University in January 2026, advised by [Prof. Liang Huang](https://web.engr.oregonstate.edu/~huanlian/).
 My research focused on AI for science: I developed efficient algorithms and generative models for biological sequence generation, drawing on methods from natural language processing.
 Currently, I work on machine learning for marketplace forecasting at Uber.
