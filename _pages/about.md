@@ -31,7 +31,7 @@ Currently, I work on machine learning for marketplace forecasting at Uber.
 
 ## [selected publications]({{ '/publications/' | relative_url }})
 
-See [Google Scholar](https://scholar.google.com/citations?user=RF1_oQoAAAAJ&hl=en) for the full publication list.
+See the [publications page]({{ '/publications/' | relative_url }}) or [Google Scholar](https://scholar.google.com/citations?user=RF1_oQoAAAAJ&hl=en) for the full list.
 
 <div class="publications">
   {% bibliography --group_by none --query @*[selected=true]* %}
