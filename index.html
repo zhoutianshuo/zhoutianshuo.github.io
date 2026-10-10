@@ -16,8 +16,28 @@
       float: right;
       margin: 0 0 1rem 2.5rem;
     }
+    /* keep the name and subtitle clear of the photo, which is pulled up beside them */
+    .post-header {
+      padding-right: calc(20% + 2.5rem);
+    }
   }
-</style> <p>I completed my Ph.D. in Computer Science at Oregon State University in January 2026, advised by <a href="https://web.engr.oregonstate.edu/~huanlian/" rel="external nofollow noopener" target="_blank">Prof. Liang Huang</a>. My research focused on AI for science: I developed efficient algorithms and generative models for biological sequence generation, drawing on methods from natural language processing. Currently, I work on machine learning for marketplace forecasting at Uber.</p> <h2 id="research-interests">research interests</h2> <ul> <li>AI for Science</li> <li>Computational Biology</li> <li>Natural Language Processing</li> <li>Web Search</li> </ul> <h2 id="academic-service">academic service</h2> <ul> <li> <strong>Reviewer</strong>: ACL 2026, <em>Nature Communications</em> (2024), <em>Bioinformatics</em> (2025), ACM BCB (2025, 2026), <em>Computational and Structural Biotechnology Journal</em> (2026)</li> <li> <strong>Co-Reviewer</strong>: ISMB (2023, 2024, 2025), RECOMB (2026)</li> </ul> </div> <div class="social"> <div class="contact-icons"> <a href="mailto:zhoutian@oregonstate.edu" title="Email"><i class="fa-solid fa-envelope"></i></a> <a href="https://scholar.google.com/citations?user=RF1_oQoAAAAJ" title="Scholar userid" rel="external nofollow noopener" target="_blank"><i class="ai ai-google-scholar"></i></a> <a href="https://github.com/shanry" title="Github username" rel="external nofollow noopener" target="_blank"><i class="fa-brands fa-github"></i></a> <a href="https://www.linkedin.com/in/tianshuozhou" title="Linkedin username" rel="external nofollow noopener" target="_blank"><i class="fa-brands fa-linkedin"></i></a> </div> <div class="contact-note">Email is the best way to reach me. </div> </div> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Tianshuo Zhou. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
+</style> <script>
+  (function () {
+    var profile = document.querySelector(".profile.float-right");
+    var title = document.querySelector(".post-header .post-title");
+    if (!profile || !title) return;
+    var desktop = window.matchMedia("(min-width: 576px)");
+    function align() {
+      profile.style.marginTop = "0px";
+      if (!desktop.matches) return;
+      var offset = profile.getBoundingClientRect().top - title.getBoundingClientRect().top;
+      profile.style.marginTop = -offset + "px";
+    }
+    align();
+    window.addEventListener("load", align);
+    window.addEventListener("resize", align);
+  })();
+</script> <p>I completed my Ph.D. in Computer Science at Oregon State University in January 2026, advised by <a href="https://web.engr.oregonstate.edu/~huanlian/" rel="external nofollow noopener" target="_blank">Prof. Liang Huang</a>. My research focused on AI for science: I developed efficient algorithms and generative models for biological sequence generation, drawing on methods from natural language processing. Currently, I work on machine learning for marketplace forecasting at Uber.</p> <h2 id="research-interests">research interests</h2> <ul> <li>AI for Science</li> <li>Computational Biology</li> <li>Natural Language Processing</li> <li>Web Search</li> </ul> <h2 id="academic-service">academic service</h2> <ul> <li> <strong>Reviewer</strong>: ACL 2026, <em>Nature Communications</em> (2024), <em>Bioinformatics</em> (2025), ACM BCB (2025, 2026), <em>Computational and Structural Biotechnology Journal</em> (2026)</li> <li> <strong>Co-Reviewer</strong>: ISMB (2023, 2024, 2025), RECOMB (2026)</li> </ul> </div> <div class="social"> <div class="contact-icons"> <a href="mailto:zhoutian@oregonstate.edu" title="Email"><i class="fa-solid fa-envelope"></i></a> <a href="https://scholar.google.com/citations?user=RF1_oQoAAAAJ" title="Scholar userid" rel="external nofollow noopener" target="_blank"><i class="ai ai-google-scholar"></i></a> <a href="https://github.com/shanry" title="Github username" rel="external nofollow noopener" target="_blank"><i class="fa-brands fa-github"></i></a> <a href="https://www.linkedin.com/in/tianshuozhou" title="Linkedin username" rel="external nofollow noopener" target="_blank"><i class="fa-brands fa-linkedin"></i></a> </div> <div class="contact-note">Email is the best way to reach me. </div> </div> </article> </div> </div> <footer class="fixed-bottom" role="contentinfo"> <div class="container mt-0"> © Copyright 2026 Tianshuo Zhou. Powered by <a href="https://jekyllrb.com/" target="_blank" rel="external nofollow noopener">Jekyll</a> with <a href="https://github.com/alshedivat/al-folio" rel="external nofollow noopener" target="_blank">al-folio</a> theme. Hosted by <a href="https://pages.github.com/" target="_blank" rel="external nofollow noopener">GitHub Pages</a>. </div> </footer> <script>
   window.alFolio = {
     compatBootstrap: false
   };
