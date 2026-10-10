@@ -9,7 +9,7 @@ profile:
   image: prof_pic.jpg
   image_circular: true # crops the image to make it circular
 
-selected_papers: false # selected papers are rendered inline below, to keep them above talks and service
+selected_papers: false # includes a list of papers marked as "selected={true}"
 social: true # includes social icons at the bottom of the page
 
 announcements:
@@ -44,14 +44,6 @@ Currently, I work on machine learning for marketplace forecasting at Uber.
 - AI for Science (Computational Biology)
 - Natural Language Processing
 - Web Search
-
-## [selected publications]({{ '/publications/' | relative_url }})
-
-See the [publications page]({{ '/publications/' | relative_url }}) or [Google Scholar](https://scholar.google.com/citations?user=RF1_oQoAAAAJ&hl=en) for the full list.
-
-<div class="publications">
-  {% bibliography --group_by none --query @*[selected=true]* %}
-</div>
 
 ## academic service
 
