@@ -13,7 +13,7 @@ nav_order: 1
 
 {% include bib_search.liquid %}
 
-Full list from my CV. See also [Google Scholar](https://scholar.google.com/citations?user=RF1_oQoAAAAJ&hl=en).
+Also on [Google Scholar](https://scholar.google.com/citations?user=RF1_oQoAAAAJ&hl=en).
 
 <div class="publications">
 
