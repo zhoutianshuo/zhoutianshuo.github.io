@@ -75,5 +75,5 @@ Currently, I work on machine learning for marketplace forecasting at Uber.
 
 ## academic service
 
-- **Reviewer**: ACL 2026, _Nature Communications_ (2024), _Bioinformatics_ (2025), ACM BCB (2025, 2026), _Computational and Structural Biotechnology Journal_ (2026)
-- **Co-Reviewer**: ISMB (2023, 2024, 2025), RECOMB (2026)
+- **Reviewer**: ACL (2026), _Bioinformatics_ (2026, 2025), ACM BCB (2026, 2025), _Computational and Structural Biotechnology Journal_ (2026), _PeerJ_ (2026), _Journal of Computational Biology_ (2026), _Nature Communications_ (2024)
+- **Co-Reviewer**: RECOMB (2026), ISMB (2025, 2024, 2023)

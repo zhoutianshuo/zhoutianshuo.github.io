@@ -6,8 +6,7 @@ title: Tianshuo Zhou # the website title (if blank, full name will be used inste
 first_name: Tianshuo
 middle_name:
 last_name: Zhou
-contact_note: >
-  Email is the best way to reach me.
+contact_note: # optional note shown under the social icons on the about page
 description: > # the ">" symbol means to ignore newlines until "footer_text:"
   Tianshuo Zhou's homepage. Machine learning, AI for science, and natural language processing.
 footer_text: >
