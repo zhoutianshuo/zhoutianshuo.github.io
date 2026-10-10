@@ -7,5 +7,5 @@ nav: true
 nav_order: 6
 ---
 
-- [Lunar Calendar](https://web.engr.oregonstate.edu/~zhoutian/lunar-calendar/index.html) — Chinese lunar / Gregorian calendar converter
-- [The Shannon Game](https://web.engr.oregonstate.edu/~zhoutian/shannon-game/index.html) — an interactive recreation of Shannon's 1951 letter-guessing experiment estimating the entropy of English
+- [Lunar Calendar]({{ '/tools/lunar-calendar/' | relative_url }}) — Chinese lunar / Gregorian calendar converter
+- [The Shannon Game]({{ '/tools/shannon-game/' | relative_url }}) — an interactive recreation of Shannon's 1951 letter-guessing experiment estimating the entropy of English
