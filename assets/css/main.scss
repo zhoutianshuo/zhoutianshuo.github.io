@@ -56,12 +56,13 @@ html {
 // -----------------------------------------------------------------------------
 // Blog posts: Inter Light body text at the size and line height of
 // bishopbook.com (17.6px / 1.47), Regular (400) bold, Inter headings at
-// in-between weights (550 and 490) to suit the Light body, set a little
-// tighter, MathJax's Computer Modern math capped at 110%, more room around
-// headings, blue links, and neutral gray code. Only blog posts render
-// article.post-content, so the rest of the site keeps Roboto and the accent.
-// _config.yml loads Inter as a variable font with the range 300..700, which is
-// what makes 490 and 550 work; a weight outside it silently clamps.
+// in-between weights (550 and 490) to suit the Light body, in Inter's Display
+// optical size (the body stays on the text design), MathJax's Computer Modern
+// math capped at 110%, more room around headings, blue links, and neutral
+// gray code. Only blog posts render article.post-content, so the rest of the
+// site keeps Roboto and the accent. _config.yml loads Inter as a variable font
+// with weights 300..700 and optical sizes 14..32, which is what makes 490, 550
+// and the Display headings work; values outside those ranges silently clamp.
 // Full spec, reasons and history: docs/BLOG_DESIGN.md.
 // -----------------------------------------------------------------------------
 $post-body:
@@ -84,10 +85,11 @@ $post-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation M
 }
 
 .post:has(> article.post-content) .post-header {
+  // no extra letter spacing on headings: Inter's Display optical size, which
+  // large type gets automatically, is already tight
   .post-title {
     font-family: $post-heading;
     font-weight: 550;
-    letter-spacing: -0.02em;
   }
 }
 
@@ -100,6 +102,9 @@ article.post-content {
   font-weight: 300;
   font-size: 1.1rem;
   line-height: 1.47;
+  // keep the body on Inter's text design; headings below switch optical
+  // sizing back on, so large type gets the tighter Display design
+  font-optical-sizing: none;
 
   h1,
   h2,
@@ -107,7 +112,7 @@ article.post-content {
   h4 {
     font-family: $post-heading;
     font-weight: 550;
-    letter-spacing: -0.02em;
+    font-optical-sizing: auto;
   }
 
   h2 {
@@ -117,7 +122,6 @@ article.post-content {
   h3,
   h4 {
     font-weight: 490;
-    letter-spacing: -0.01em;
   }
 
   h3 {
