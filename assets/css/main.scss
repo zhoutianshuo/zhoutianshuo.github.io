@@ -62,6 +62,7 @@ html {
 // article.post-content, so the rest of the site keeps Roboto and the accent.
 // _config.yml loads Inter as a variable font with the range 300..700, which is
 // what makes 490 and 550 work; a weight outside it silently clamps.
+// Full spec, reasons and history: docs/BLOG_DESIGN.md.
 // -----------------------------------------------------------------------------
 $post-body:
   Inter,
