@@ -71,7 +71,7 @@ Currently, I work on machine learning for marketplace forecasting at Uber.
 - AI for Science
 - Computational Biology
 - Natural Language Processing
-- Web Search
+- Parallel Algorithms
 
 ## academic service
 
