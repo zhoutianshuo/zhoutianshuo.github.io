@@ -45,6 +45,48 @@
     return lunar.getYearGan() + " " + lunar.getYearZhi() + " Year";
   }
 
+  // English names the library leaves in Chinese (its weekday-rule festivals and
+  // two lunar ones) or gets wrong.
+  const FESTIVAL_EN = {
+    "龙头节": "Dragon Head Festival",
+    "重阳节": "Double Ninth Festival",
+    "母亲节": "Mother's Day",
+    "父亲节": "Father's Day",
+    "世界住房日": "World Habitat Day",
+    "全国中小学生安全教育日": "National School Safety Education Day",
+    "全国助残日": "National Day for Helping the Disabled",
+    "全民国防教育日": "National Defense Education Day",
+    "Luna New Year": "Lunar New Year",
+    "International Worker's Day": "International Workers' Day",
+    "Begging Festival": "Qixi Festival",
+    "All Saints' Eve": "Halloween",
+  };
+  const HAS_CJK = /[㐀-鿿]/;
+
+  // Not shown in either language. Thanksgiving is already shown by the US
+  // holiday list below.
+  const FESTIVAL_HIDDEN = ["感恩节", "建党节", "Party's Day"];
+
+  // Solar-term names, in the usual English translations, where the library's differ
+  const SOLAR_TERM_EN = {
+    "Spring Beginning": "Beginning of Spring",
+    "Awakening from Hibernation": "Awakening of Insects",
+    "Fresh Green": "Pure Brightness",
+  };
+
+  function localizeSolarTerm(name) {
+    return (currentLang === "en" && SOLAR_TERM_EN[name]) || name;
+  }
+
+  function localizeFestival(name) {
+    if (FESTIVAL_HIDDEN.includes(name)) return null;
+    if (currentLang !== "en") return name;
+    if (Object.prototype.hasOwnProperty.call(FESTIVAL_EN, name)) return FESTIVAL_EN[name];
+    // anything else still in Chinese is a future library addition; hide it
+    // rather than mix languages
+    return HAS_CJK.test(name) ? null : name;
+  }
+
   function collectFestivals(solar, lunar, includeMinor) {
     const list = [];
     lunar.getFestivals().forEach(f => list.push(f));
@@ -57,7 +99,7 @@
       lunar.getOtherFestivals().forEach(f => list.push(f));
       solar.getOtherFestivals().forEach(f => list.push(f));
     }
-    return list;
+    return list.map(localizeFestival).filter(f => f);
   }
 
   // ---------- US federal holidays ----------
@@ -143,7 +185,7 @@
     zodiacIcon.alt = lunar.getYearShengXiao();
 
     const extraParts = [];
-    const jq = lunar.getJieQi();
+    const jq = localizeSolarTerm(lunar.getJieQi());
     if (jq) {
       extraParts.push(`<span class="tag tag-term">${t("solarTerm")}: ${jq}</span>`);
     }
@@ -275,7 +317,7 @@
 
       const fests = collectFestivals(solar, lunar);
       const holidays = usHolidaysFor(getHolidayMap(cellYear), cellMonth, dayNum);
-      const jq = lunar.getJieQi();
+      const jq = localizeSolarTerm(lunar.getJieQi());
       const isLunarNewYear = lunar.getMonth() === 1 && lunar.getDay() === 1;
 
       cell.innerHTML = `
