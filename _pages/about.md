@@ -65,15 +65,3 @@ latest_posts:
 I completed my Ph.D. in Computer Science at Oregon State University in January 2026, advised by [Prof. Liang Huang](https://web.engr.oregonstate.edu/~huanlian/).
 My research focused on AI for science: I developed efficient algorithms and generative models for biological sequence generation, drawing on methods from natural language processing.
 Currently, I work on machine learning for marketplace forecasting at Uber.
-
-## research interests
-
-- AI for Science
-- Computational Biology
-- Natural Language Processing
-- Parallel Algorithms
-
-## academic service
-
-- **Reviewer**: ACL (2026), _Bioinformatics_ (2026, 2025), ACM BCB (2026, 2025), _Computational and Structural Biotechnology Journal_ (2026), _PeerJ_ (2026), _Journal of Computational Biology_ (2026), _Nature Communications_ (2024)
-- **Co-Reviewer**: RECOMB (2026), ISMB (2025, 2024, 2023)
