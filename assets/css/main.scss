@@ -52,3 +52,169 @@ html {
     0.35px 0 0 currentColor,
     -0.35px 0 0 currentColor;
 }
+
+// -----------------------------------------------------------------------------
+// Blog posts: Inter Light body text at the size and line height of
+// bishopbook.com (17.6px / 1.47), Regular (400) bold, Inter headings at
+// in-between weights (550 and 490) to suit the Light body, set a little
+// tighter, MathJax's Computer Modern math capped at 110%, more room around
+// headings, blue links, and neutral gray code. Only blog posts render
+// article.post-content, so the rest of the site keeps Roboto and the accent.
+// _config.yml loads Inter as a variable font with the range 300..700, which is
+// what makes 490 and 550 work; a weight outside it silently clamps.
+// -----------------------------------------------------------------------------
+$post-body:
+  Inter,
+  -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  Helvetica,
+  Arial,
+  sans-serif;
+$post-heading: $post-body;
+$post-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+// a slightly narrower reading column (90% of the site width), still aligned
+// with the left edge of the navbar; phones keep the full width
+@media (min-width: 768px) {
+  .post:has(> article.post-content) {
+    max-width: 90%;
+  }
+}
+
+.post:has(> article.post-content) .post-header {
+  .post-title {
+    font-family: $post-heading;
+    font-weight: 550;
+    letter-spacing: -0.02em;
+  }
+}
+
+article.post-content {
+  --post-link-color: #0969da;
+  --global-code-bg-color: #f6f8fa;
+  --post-code-border-color: #e5e7eb;
+
+  font-family: $post-body;
+  font-weight: 300;
+  font-size: 1.1rem;
+  line-height: 1.47;
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: $post-heading;
+    font-weight: 550;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  h3,
+  h4 {
+    font-weight: 490;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: 1.2rem;
+  }
+
+  // bold is one step above the Light body, so it doesn't look black
+  strong,
+  b {
+    font-weight: 400;
+  }
+
+  // tables a step smaller than the text (the theme sets cells to 1rem), with
+  // lighter headers and digits that line up in columns
+  table td,
+  table th {
+    font-size: 0.85em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  table th {
+    font-weight: 550;
+  }
+
+  // MathJax scales math to match the surrounding x-height; Inter's is tall, so
+  // math came out at 123% of the text and looked heavy. Cap it (the scale is an
+  // inline style, hence !important).
+  mjx-container {
+    font-size: 110% !important;
+  }
+
+  code,
+  pre {
+    font-family: $post-mono;
+  }
+
+  code {
+    font-size: 0.8em;
+  }
+
+  pre,
+  pre code {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  h2 {
+    margin-top: 3rem;
+    margin-bottom: 1.25rem;
+  }
+
+  h3 {
+    margin-top: 2.25rem;
+    margin-bottom: 1rem;
+  }
+
+  h4 {
+    margin-top: 1.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  a {
+    color: var(--post-link-color);
+
+    &:hover {
+      color: var(--post-link-color);
+      text-decoration: underline;
+    }
+  }
+
+  // inline code: gray chip with normal text color instead of pink on pink
+  code {
+    color: var(--global-text-color);
+    background-color: var(--global-code-bg-color);
+  }
+
+  // code blocks: one box on the outer wrapper; the inner <pre> is flat
+  div.highlight {
+    background-color: var(--global-code-bg-color);
+    border: 1px solid var(--post-code-border-color);
+    border-radius: 6px;
+    margin-bottom: 1rem;
+  }
+
+  div.highlight pre {
+    background-color: transparent;
+    border: none;
+    margin: 0;
+    padding: 0.9rem 1rem;
+  }
+}
+
+html[data-theme="dark"] article.post-content {
+  --post-link-color: #58a6ff;
+  --global-code-bg-color: #161b22;
+  --post-code-border-color: #30363d;
+
+  // light text on a dark background renders too heavy on macOS without this
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
