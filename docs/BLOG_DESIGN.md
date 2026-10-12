@@ -1,6 +1,6 @@
 # Blog post design
 
-The typography of **blog posts only**. Other pages keep the theme's Roboto and purple/cyan accent.
+The typography of **blog posts only**. Other pages keep the theme's Roboto. The accent color, blue, is site-wide (see Links below).
 
 ## Spec
 
@@ -16,7 +16,7 @@ The typography of **blog posts only**. Other pages keep the theme's Roboto and p
 | Math                | MathJax 3 (CHTML, Computer Modern), capped at 110% of the text = 19.4px                                      |
 | Inline code         | system monospace (ui-monospace / Menlo), 0.8em, gray chip, normal text color                                 |
 | Code blocks         | system monospace 14px, line height 1.6; background #f6f8fa, 1px #e5e7eb border, 6px radius                   |
-| Links               | #0969da (dark mode #58a6ff), underlined on hover                                                             |
+| Links               | the site-wide accent: #0969da (dark mode #58a6ff), underlined on hover                                       |
 | Column              | at most 720px (about 80 characters per line), left-aligned with the navbar; full width on narrower screens   |
 | Dark mode           | code background #161b22, border #30363d; `-webkit-font-smoothing: antialiased`                               |
 | Text color          | theme default (#000 on white)                                                                                |
@@ -30,6 +30,7 @@ The typography of **blog posts only**. Other pages keep the theme's Roboto and p
 - **Inter headings at 550 and 490.** Helvetica next to Inter looked almost, but not quite, the same. The usual 700 and 600 overpowered the Light body.
 - **Math capped at 110%.** MathJax scales math to match the surrounding x-height. Inter's x-height is tall, so math came out at 123% and looked heavy. The cap needs `!important` because MathJax sets the scale as an inline style.
 - **Display optical size for headings, text for the body.** Inter's Display design is spaced tighter and drawn finer for large sizes, so the 40px title looks polished instead of loose. With automatic optical sizing, browsers pick the design from the font size: the title gets full Display (opsz 32), h2 about halfway, and h3 mostly text. The body turns optical sizing off to stay exactly on the text design, which is the one built for reading. The headings' manual −0.02em letter spacing was removed, because on top of the Display design's own tightness it crammed the title.
+- **Blue accent site-wide.** The theme's default accent is purple (#b509ac) in light mode and cyan (#2698ba) in dark mode, and blog links were already blue, so readers saw three accents. One blue for links, the active tab, badges and the blockquote bar keeps the site consistent, reads as clickable, and suits the quiet typography. It lives at the top of `assets/css/main.scss` as `--global-theme-color` and `--global-hover-color`, and blog links use the same variable.
 - **Tables at 0.85em.** The theme sets table cells to 1rem, which is nearly body size.
 
 ## Where it lives
@@ -62,4 +63,27 @@ The typography of **blog posts only**. Other pages keep the theme's Roboto and p
 - **Thinner strokes in light mode.** Add `-webkit-font-smoothing: antialiased` and soften the text color to #1f2328. bishopbook.com's text looks thinner for these reasons (antialiased white text on navy), not because of its weight.
 - **Stylistic sets from [rsms.me](https://rsms.me/inter/).** Only rsms.me's InterVariable has them, such as cv05 (lowercase l with a tail) and ss02 (slashed zero). Google Fonts strips them. The cost is one file of about 350 KB with every script, against Google's 73 KB Latin file.
 - **Lighter math.** Cap it at 105%, or give it a slightly lighter color. A different MathJax font would need changes in the `al_math` gem.
-- **Smaller touches.** Change the blockquote bar from the theme accent to blue or gray.
+
+## Further reading
+
+Books for learning typography and UI design, in a suggested reading order.
+
+**Start here**
+
+1. **[_Practical Typography_](https://practicaltypography.com/)** by Matthew Butterick. Free online and short. It covers body size, line spacing, line length and bold versus italic. The line height and column width above follow its rules.
+2. **_Refactoring UI_** by Adam Wathan and Steve Schoger. Before-and-after examples of hierarchy through weight and color, spacing scales, and grays instead of pure black.
+3. **_The Non-Designer's Design Book_** by Robin Williams. Four principles (contrast, repetition, alignment, proximity) that name why a layout feels off.
+
+**Deeper typography**
+
+4. **_The Elements of Typographic Style_** by Robert Bringhurst. The classic reference on rhythm, proportion and pairing type. Dense and print-oriented.
+5. **_Thinking with Type_** by Ellen Lupton. Letter, text and grid, more visual and approachable than Bringhurst.
+6. **_Web Typography_** by Richard Rutter. Bringhurst's ideas in CSS: font loading, OpenType features, responsive sizing and tables.
+
+**For technical posts**
+
+7. **_The Visual Display of Quantitative Information_** by Edward Tufte. Presenting tables and charts so the data carries the weight.
+
+**Broader UX**
+
+8. **_Don't Make Me Think_** by Steve Krug. Navigation and scanning rather than aesthetics.

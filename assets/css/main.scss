@@ -53,6 +53,18 @@ html {
     -0.35px 0 0 currentColor;
 }
 
+// One accent for the whole site and both modes: GitHub's link blue, instead of
+// the theme's purple (light) and cyan (dark).
+:root {
+  --global-theme-color: #0969da;
+  --global-hover-color: #0969da;
+}
+
+html[data-theme="dark"] {
+  --global-theme-color: #58a6ff;
+  --global-hover-color: #58a6ff;
+}
+
 // -----------------------------------------------------------------------------
 // Blog posts: Inter Light body text at bishopbook.com's size (17.6px) with
 // Butterick's limits for line height (1.45) and line length (a 720px column,
@@ -61,9 +73,9 @@ html {
 // size (the body stays on the text design), MathJax's Computer Modern math
 // capped at 110%, more room around headings, blue links, and neutral gray
 // code. Only blog posts render article.post-content, so the rest of the
-// site keeps Roboto and the accent. _config.yml loads Inter as a variable font
-// with weights 300..700 and optical sizes 14..32, which is what makes 490, 550
-// and the Display headings work; values outside those ranges silently clamp.
+// site keeps Roboto. _config.yml loads Inter as a variable font with weights
+// 300..700 and optical sizes 14..32, which is what makes 490, 550 and the
+// Display headings work; values outside those ranges silently clamp.
 // Full spec, reasons and history: docs/BLOG_DESIGN.md.
 // -----------------------------------------------------------------------------
 $post-body:
@@ -94,7 +106,7 @@ $post-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation M
 }
 
 article.post-content {
-  --post-link-color: #0969da;
+  --post-link-color: var(--global-theme-color);
   --global-code-bg-color: #f6f8fa;
   --post-code-border-color: #e5e7eb;
 
@@ -215,7 +227,6 @@ article.post-content {
 }
 
 html[data-theme="dark"] article.post-content {
-  --post-link-color: #58a6ff;
   --global-code-bg-color: #161b22;
   --post-code-border-color: #30363d;
 
