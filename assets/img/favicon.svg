@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<style>.s{fill:#1f2328}.l{stroke:#1f2328}.b{fill:#f0702c}.r{fill:#3b7bff}@media (prefers-color-scheme:dark){.s{fill:#f0f3f6}.l{stroke:#f0f3f6}.b{fill:#ff9a5c}.r{fill:#7aa7ff}}</style>
+<path class="l" d="M18.1 19.6L65.2 24.0 M18.1 19.6L40.7 58.7 M65.2 24.0L54.5 51.8 M54.5 51.8L47.9 55.6 M47.9 55.6L40.7 58.7 M40.7 58.7L29.8 91.0 M54.5 51.8L81.9 84.9 M29.8 91.0L81.9 84.9" stroke-opacity=".38" stroke-width="3.0" stroke-linecap="round" fill="none"/>
+<path class="b" d="M18.1 4.6C21.1 16.6 21.1 16.6 33.1 19.6C21.1 22.6 21.1 22.6 18.1 34.6C15.1 22.6 15.1 22.6 3.1 19.6C15.1 16.6 15.1 16.6 18.1 4.6Z"/>
+<path class="r" d="M81.9 69.9C84.9 81.9 84.9 81.9 96.9 84.9C84.9 87.9 84.9 87.9 81.9 99.9C78.9 87.9 78.9 87.9 66.9 84.9C78.9 81.9 78.9 81.9 81.9 69.9Z"/>
+<circle class="s" cx="65.2" cy="24.0" r="5.4"/>
+<circle class="s" cx="47.9" cy="55.6" r="5.3"/>
+<circle class="s" cx="40.7" cy="58.7" r="5.2"/>
+<circle class="s" cx="29.8" cy="91.0" r="4.7"/>
+<circle class="s" cx="54.5" cy="51.8" r="4.4"/>
+</svg>
