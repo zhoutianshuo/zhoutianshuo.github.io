@@ -6,7 +6,7 @@ The typography of **blog posts only**. Other pages keep the theme's Roboto and p
 
 | Element             | Setting                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Body text           | Inter Light (300), 1.1rem = 17.6px, line height 1.47 = 25.9px; text optical size (optical sizing off)        |
+| Body text           | Inter Light (300), 1.1rem = 17.6px, line height 1.45 = 25.5px; text optical size (optical sizing off)        |
 | Bold (`strong`/`b`) | Inter 400                                                                                                    |
 | Italic              | Inter Light Italic (300)                                                                                     |
 | Post title          | Inter 550, 40px (theme size); Display optical size, no extra letter spacing                                  |
@@ -17,13 +17,14 @@ The typography of **blog posts only**. Other pages keep the theme's Roboto and p
 | Inline code         | system monospace (ui-monospace / Menlo), 0.8em, gray chip, normal text color                                 |
 | Code blocks         | system monospace 14px, line height 1.6; background #f6f8fa, 1px #e5e7eb border, 6px radius                   |
 | Links               | #0969da (dark mode #58a6ff), underlined on hover                                                             |
-| Column              | 90% of the site width on screens ≥ 768px, left-aligned with the navbar; full width on phones                 |
+| Column              | at most 720px (about 80 characters per line), left-aligned with the navbar; full width on narrower screens   |
 | Dark mode           | code background #161b22, border #30363d; `-webkit-font-smoothing: antialiased`                               |
 | Text color          | theme default (#000 on white)                                                                                |
 
 ## Why
 
-- **Inter at 17.6px / 1.47.** This is the body text of [bishopbook.com](https://www.bishopbook.com/), measured in Chrome.
+- **Inter at 17.6px.** This is the body text size of [bishopbook.com](https://www.bishopbook.com/), measured in Chrome.
+- **Line height 1.45 and a 720px column.** These follow [Butterick's body text rules](https://practicaltypography.com/summary-of-key-rules.html): line spacing 120–145% and 45–90 characters per line. The earlier 1.47 (bishopbook.com's) was just over the range, and the earlier 90%-wide column (810px) set a median of 91 and up to 103 characters per line. At 720px the median is 80, with a handful of lines up to about 94.
 - **Light (300) body.** Regular (400) looked heavy. ExtraLight (200) looked faint, and it made the math look bold by comparison.
 - **Bold at 400.** At 700, bold looked black next to a Light body. If the body weight changes, move bold with it, about one step above the body.
 - **Inter headings at 550 and 490.** Helvetica next to Inter looked almost, but not quite, the same. The usual 700 and 600 overpowered the Light body.
@@ -52,6 +53,7 @@ The typography of **blog posts only**. Other pages keep the theme's Roboto and p
   4. Times (Tinos fallback) at 20px / 1.4 with Helvetica Bold headings, matching Bishop's _Deep Learning_ PDF
   5. Inter at bishopbook.com's size (current)
 - Body weight tried: 400, then 200, then 300.
+- Line height 1.47 and a 90%-wide column (810px), until both were brought within Butterick's limits.
 - Heading weights tried: 700/600, then 600/500, then 550 with subsections at 450, 470 and 490.
 - Headings used the text design with −0.02em / −0.01em letter spacing, before the Display optical size replaced the manual tightening.
 
@@ -60,4 +62,4 @@ The typography of **blog posts only**. Other pages keep the theme's Roboto and p
 - **Thinner strokes in light mode.** Add `-webkit-font-smoothing: antialiased` and soften the text color to #1f2328. bishopbook.com's text looks thinner for these reasons (antialiased white text on navy), not because of its weight.
 - **Stylistic sets from [rsms.me](https://rsms.me/inter/).** Only rsms.me's InterVariable has them, such as cv05 (lowercase l with a tail) and ss02 (slashed zero). Google Fonts strips them. The cost is one file of about 350 KB with every script, against Google's 73 KB Latin file.
 - **Lighter math.** Cap it at 105%, or give it a slightly lighter color. A different MathJax font would need changes in the `al_math` gem.
-- **Smaller touches.** Change the blockquote bar from the theme accent to blue or gray. Narrow the column to bishopbook.com's 720px.
+- **Smaller touches.** Change the blockquote bar from the theme accent to blue or gray.

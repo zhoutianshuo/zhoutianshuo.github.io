@@ -54,12 +54,13 @@ html {
 }
 
 // -----------------------------------------------------------------------------
-// Blog posts: Inter Light body text at the size and line height of
-// bishopbook.com (17.6px / 1.47), Regular (400) bold, Inter headings at
-// in-between weights (550 and 490) to suit the Light body, in Inter's Display
-// optical size (the body stays on the text design), MathJax's Computer Modern
-// math capped at 110%, more room around headings, blue links, and neutral
-// gray code. Only blog posts render article.post-content, so the rest of the
+// Blog posts: Inter Light body text at bishopbook.com's size (17.6px) with
+// Butterick's limits for line height (1.45) and line length (a 720px column,
+// about 80 characters), Regular (400) bold, Inter headings at in-between
+// weights (550 and 490) to suit the Light body, in Inter's Display optical
+// size (the body stays on the text design), MathJax's Computer Modern math
+// capped at 110%, more room around headings, blue links, and neutral gray
+// code. Only blog posts render article.post-content, so the rest of the
 // site keeps Roboto and the accent. _config.yml loads Inter as a variable font
 // with weights 300..700 and optical sizes 14..32, which is what makes 490, 550
 // and the Display headings work; values outside those ranges silently clamp.
@@ -76,12 +77,11 @@ $post-body:
 $post-heading: $post-body;
 $post-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 
-// a slightly narrower reading column (90% of the site width), still aligned
-// with the left edge of the navbar; phones keep the full width
-@media (min-width: 768px) {
-  .post:has(> article.post-content) {
-    max-width: 90%;
-  }
+// a 720px reading column (about 80 characters per line, inside Butterick's
+// 45-90), still aligned with the left edge of the navbar; narrower screens
+// keep the full width
+.post:has(> article.post-content) {
+  max-width: 720px;
 }
 
 .post:has(> article.post-content) .post-header {
@@ -101,7 +101,7 @@ article.post-content {
   font-family: $post-body;
   font-weight: 300;
   font-size: 1.1rem;
-  line-height: 1.47;
+  line-height: 1.45;
   // keep the body on Inter's text design; headings below switch optical
   // sizing back on, so large type gets the tighter Display design
   font-optical-sizing: none;
