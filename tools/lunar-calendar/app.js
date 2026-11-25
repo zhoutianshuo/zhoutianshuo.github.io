@@ -8,7 +8,7 @@
   const ZODIAC_ICON = ["rat","ox","tiger","rabbit","loong","snake","horse","sheep","monkey","rooster","dog","pig"];
 
   function zodiacIconPath(zhiIndex) {
-    return "assets/zodiac/" + ZODIAC_ICON[zhiIndex] + ".png";
+    return "zodiac/" + ZODIAC_ICON[zhiIndex] + ".png";
   }
 
   function syncLibraryLanguage() {
